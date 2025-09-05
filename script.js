@@ -29,7 +29,7 @@ function drawRoulette() {
         ctx.lineTo(canvas.width / 2, canvas.height / 2);
         ctx.fill();
 
-        // --- НОВАЯ ЛОГИКА ОТРИСОВКИ ТЕКСТА ---
+        // --- ЛОГИКА ОТРИСОВКИ ТЕКСТА ---
         ctx.save();
         // Перемещаем "карандаш" в центр колеса
         ctx.translate(canvas.width / 2, canvas.height / 2);
@@ -50,15 +50,23 @@ function drawRoulette() {
     }
 }
 
-// Функция для отрисовки указателя (стрелки)
+// --- НОВАЯ ФУНКЦИЯ ДЛЯ ОТРИСОВКИ УКАЗАТЕЛЯ (СПРАВА) ---
 function drawPointer() {
     ctx.save();
-    ctx.translate(canvas.width / 2, canvas.height / 2);
+    // Перемещаем в центр, но рисовать будем относительно правого края
+    ctx.translate(canvas.width / 2, canvas.height / 2); 
+    
     ctx.fillStyle = '#ff3838'; // Яркий красный цвет
     ctx.beginPath();
-    ctx.moveTo(0, -canvas.height / 2 + 5);
-    ctx.lineTo(15, -canvas.height / 2 - 15);
-    ctx.lineTo(-15, -canvas.height / 2 - 15);
+    
+    // Рисуем большой треугольник, указывающий влево (на колесо)
+    const pointerSize = 25; // Размер стрелки
+    const offset = 10;     // Отступ от края колеса
+    
+    ctx.moveTo(canvas.width / 2 - offset, 0); // Правый кончик стрелки (рядом с краем колеса)
+    ctx.lineTo(canvas.width / 2 - offset - pointerSize, pointerSize / 2); // Нижняя точка
+    ctx.lineTo(canvas.width / 2 - offset - pointerSize, -pointerSize / 2); // Верхняя точка
+    
     ctx.closePath();
     ctx.fill();
     ctx.restore();
@@ -100,7 +108,13 @@ function spin() {
             requestAnimationFrame(animate);
         } else {
             currentAngle = angle % (2 * Math.PI);
-            const winningAngle = (2 * Math.PI - currentAngle) % (2 * Math.PI);
+            
+            // Расчет выигрышного сектора для указателя справа
+            // Указатель справа - это 0 градусов по оси X.
+            // Нужно от текущего угла отсчитать против часовой до 0 градусов
+            let winningAngle = (2 * Math.PI - currentAngle) % (2 * Math.PI);
+            // Если указатель справа (0 радиан), то выигрышный сектор должен быть повернут так,
+            // чтобы его середина совпадала с 0 радиан.
             const winningSectorIndex = Math.floor(winningAngle / arc);
             const prize = prizes[winningSectorIndex].text.join(' ');
             
