@@ -3,11 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Тест связи</title>
+    <title>Колесо Фортуны</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>Тест отправки данных</h1>
-    <button id="test-btn" style="font-size: 24px; padding: 20px;">Нажми меня, чтобы отправить тест в n8n</button>
+    <div class="container">
+        <h1>Испытай свою удачу!</h1>
+        <canvas id="roulette" width="350" height="350"></canvas>
+        <button id="spin-btn">Крутить!</button>
+    </div>
 
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="script.js"></script>
