@@ -1,60 +1,66 @@
 // --- НАСТРОЙКА ПРИЗОВ ---
-// Теперь текст можно разбивать на строки для красивого отображения
-// И настроить его положение (x, y) относительно центра сектора
 const prizes = [
-    { text: ["Прямой", "перевод", "300₽"], color: '#48dbfb' },
-    { text: ["«Дичь от", "логиста»"], color: '#1dd1a1' },
-    { text: ["«Сок", "благодарности»", "– 100 ₽"], color: '#ff6b6b' },
-    { text: ["«Быстрая", "полка»"], color: '#feca57' },
+    { text: ["Прямой", "перевод", "300₽"], color: '#48dbfb' }, // Голубой
+    { text: ["«Дичь от", "логиста»"], color: '#1dd1a1' },     // Зеленый
+    { text: ["«Сок", "благодарности»", "– 100 ₽"], color: '#ff6b6b' }, // Красный
+    { text: ["«Быстрая", "полка»"], color: '#feca57' },     // Желтый
 ];
 // ------------------------
 
 const canvas = document.getElementById('roulette');
 const ctx = canvas.getContext('2d');
 const spinBtn = document.getElementById('spin-btn');
-const rouletteContainer = document.querySelector('.roulette-container'); // Для вращения всего контейнера
 
 const sectors = prizes.length;
 const arc = (2 * Math.PI) / sectors;
-let currentRotation = 0; // Для отслеживания текущего поворота контейнера
+let currentAngle = 0;
 let isSpinning = false;
-const spinDuration = 5000; // 5 секунд
+const spinDuration = 6000; // 6 секунд для более плавной остановки
 
-// Функция для отрисовки колеса
+// Функция для отрисовки статичной части колеса
 function drawRoulette() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
     for (let i = 0; i < sectors; i++) {
         const angle = i * arc;
         // Рисуем сектор
         ctx.beginPath();
         ctx.fillStyle = prizes[i].color;
-        ctx.moveTo(canvas.width / 2, canvas.height / 2); // Центр
+        ctx.moveTo(canvas.width / 2, canvas.height / 2);
         ctx.arc(canvas.width / 2, canvas.height / 2, canvas.width / 2 - 5, angle, angle + arc);
-        ctx.lineTo(canvas.width / 2, canvas.height / 2); // Обратно к центру
+        ctx.lineTo(canvas.width / 2, canvas.height / 2);
         ctx.fill();
 
         // Рисуем текст всегда горизонтально
         ctx.save();
         ctx.fillStyle = 'white';
-        ctx.font = 'bold 16px Arial';
+        ctx.font = 'bold 15px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-
-        // Вычисляем середину сектора для размещения текста
-        const textRadius = canvas.width / 2 * 0.65; // Подальше от центра, поближе к краю
+        
+        const textRadius = canvas.width / 2 * 0.65;
         const textX = canvas.width / 2 + textRadius * Math.cos(angle + arc / 2);
         const textY = canvas.height / 2 + textRadius * Math.sin(angle + arc / 2);
 
         const textLines = prizes[i].text;
         for (let j = 0; j < textLines.length; j++) {
-            // Размещаем строки текста вертикально
-            ctx.fillText(textLines[j], textX, textY + (j - (textLines.length - 1) / 2) * 20);
+            ctx.fillText(textLines[j], textX, textY + (j - (textLines.length - 1) / 2) * 18);
         }
         ctx.restore();
     }
 }
 
+// Функция для отрисовки указателя (стрелки)
+function drawPointer() {
+    ctx.save();
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.fillStyle = '#ff3838'; // Яркий красный цвет
+    ctx.beginPath();
+    ctx.moveTo(0, -canvas.height / 2 + 5);
+    ctx.lineTo(15, -canvas.height / 2 - 15);
+    ctx.lineTo(-15, -canvas.height / 2 - 15);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+}
 
 // Функция вращения
 function spin() {
@@ -62,54 +68,52 @@ function spin() {
     isSpinning = true;
     spinBtn.disabled = true;
 
-    // Добавляем случайные обороты для интриги
-    const randomSpins = Math.random() * 5 + 5; // от 5 до 10 полных оборотов
-    const stopAngleRad = Math.random() * 2 * Math.PI; // Угол остановки в радианах
-    const totalSpinRad = randomSpins * 2 * Math.PI + stopAngleRad;
+    const randomSpins = Math.random() * 5 + 8; // от 8 до 13 оборотов
+    const stopAngle = Math.random() * 2 * Math.PI;
+    const totalAngle = randomSpins * 2 * Math.PI + stopAngle;
     
-    // Преобразуем углы в градусы для CSS transform
-    const currentAngleDeg = (currentRotation * 180 / Math.PI) % 360;
-    const totalSpinDeg = (totalSpinRad * 180 / Math.PI);
-    const finalAngleDeg = currentAngleDeg + totalSpinDeg;
+    let start = null;
 
-    rouletteContainer.style.transition = `transform ${spinDuration / 1000}s ease-out`;
-    rouletteContainer.style.transform = `rotate(${finalAngleDeg}deg)`;
+    function animate(timestamp) {
+        if (!start) start = timestamp;
+        const progress = timestamp - start;
+        const easeOut = 1 - Math.pow(1 - progress / spinDuration, 4); // Плавная остановка
+        const angle = easeOut * totalAngle;
 
-    setTimeout(() => {
-        isSpinning = false;
-        spinBtn.disabled = false;
-        currentRotation = (finalAngleDeg * Math.PI / 180) % (2 * Math.PI); // Обновляем текущий угол для следующего спина
-
-        // Определяем выигрышный сектор
-        // Указатель находится сверху, т.е. 90 градусов или Math.PI/2 от центра в верх
-        // Колесо вращается по часовой стрелке, сектора отсчитываются против часовой
-        // Нужно найти, какой сектор находится под указателем (сверху) после остановки
+        // Очищаем и перерисовываем
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        // Нормализуем текущий угол, чтобы он был положительным и до 2*PI
-        let normalizedCurrentAngle = currentRotation;
-        if (normalizedCurrentAngle < 0) {
-            normalizedCurrentAngle += (2 * Math.PI);
+        // Вращаем контекст, рисуем колесо, возвращаем контекст
+        ctx.save();
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate(angle);
+        ctx.translate(-canvas.width / 2, -canvas.height / 2);
+        drawRoulette();
+        ctx.restore();
+        
+        // Поверх всего рисуем статичный указатель
+        drawPointer();
+
+        if (progress < spinDuration) {
+            requestAnimationFrame(animate);
+        } else {
+            currentAngle = angle % (2 * Math.PI);
+            const winningAngle = (2 * Math.PI - currentAngle) % (2 * Math.PI);
+            const winningSectorIndex = Math.floor(winningAngle / arc);
+            const prize = prizes[winningSectorIndex].text.join(' ');
+            
+            // Отправляем данные о выигрыше обратно в n8n
+            Telegram.WebApp.sendData(prize);
+            // Закрываем приложение через 2 секунды
+            setTimeout(() => Telegram.WebApp.close(), 2000);
         }
-
-        // Вычисляем угол, на который указывает стрелка
-        // Стрелка смотрит на 0 градусов (вверх). Сектора нумеруются от 0 по часовой.
-        // Поэтому нужно от 2*PI вычесть текущий угол и поделить на arc, чтобы получить индекс.
-        // Добавляем Math.PI / 2, чтобы учесть поворот колеса относительно указателя (указатель сверху)
-        const winningSectorAngleFromTop = (2 * Math.PI - normalizedCurrentAngle + (Math.PI / 2) + arc / 2) % (2 * Math.PI);
-        const winningSectorIndex = Math.floor(winningSectorAngleFromTop / arc) % sectors;
-
-
-        const prize = prizes[winningSectorIndex].text.join(' ');
-        
-        // Отправляем данные о выигрыше обратно в n8n
-        Telegram.WebApp.sendData(prize);
-        // Закрываем приложение через 2 секунды
-        setTimeout(() => Telegram.WebApp.close(), 2000);
-
-    }, spinDuration);
+    }
+    requestAnimationFrame(animate);
 }
 
 // Инициализация
 Telegram.WebApp.ready();
-drawRoulette(); // Рисуем колесо статично
+// Сначала рисуем статичное колесо и указатель
+drawRoulette();
+drawPointer();
 spinBtn.addEventListener('click', spin);
