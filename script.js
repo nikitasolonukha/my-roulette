@@ -29,22 +29,24 @@ function drawRoulette() {
         ctx.lineTo(canvas.width / 2, canvas.height / 2);
         ctx.fill();
 
-        // Рисуем текст всегда горизонтально
+        // --- НОВАЯ ЛОГИКА ОТРИСОВКИ ТЕКСТА ---
         ctx.save();
+        // Перемещаем "карандаш" в центр колеса
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        // Поворачиваем холст к середине сектора
+        ctx.rotate(angle + arc / 2);
+        
         ctx.fillStyle = 'white';
         ctx.font = 'bold 15px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        
-        const textRadius = canvas.width / 2 * 0.65;
-        const textX = canvas.width / 2 + textRadius * Math.cos(angle + arc / 2);
-        const textY = canvas.height / 2 + textRadius * Math.sin(angle + arc / 2);
+        ctx.textAlign = 'center'; // Текст будет центрирован относительно точки отрисовки
 
         const textLines = prizes[i].text;
         for (let j = 0; j < textLines.length; j++) {
-            ctx.fillText(textLines[j], textX, textY + (j - (textLines.length - 1) / 2) * 18);
+            // Рисуем каждую строку текста на определенном расстоянии от центра
+            // и со смещением друг от друга для многострочности
+            ctx.fillText(textLines[j], canvas.width / 4, (j - (textLines.length - 1) / 2) * 20);
         }
-        ctx.restore();
+        ctx.restore(); // Возвращаем холст в исходное состояние для следующего сектора
     }
 }
 
