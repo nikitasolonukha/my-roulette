@@ -1,12 +1,12 @@
-// === ПРОД-вебхук n8n (ОБЯЗАТЕЛЬНО без "-test") ===
+// === ПРОД-вебхук n8n ===
 var WEBHOOK_URL = 'https://solonflowai.ru/webhook/roulette_prize';
 
-// отлов ошибок
-window.onerror = function (msg) {
-  try { if (window.Telegram && Telegram.WebApp && Telegram.WebApp.showAlert) Telegram.WebApp.showAlert('JS: ' + msg); } catch(_) {}
+// Покажем ошибку, если что
+window.onerror = function (m) {
+  try { if (window.Telegram && Telegram.WebApp && Telegram.WebApp.showAlert) Telegram.WebApp.showAlert('JS: '+m); } catch(_) {}
+  alert('JS: ' + m);
 };
 
-// всё после загрузки DOM
 document.addEventListener('DOMContentLoaded', function () {
   var canvas = document.getElementById('roulette');
   var ctx = canvas.getContext('2d');
@@ -20,7 +20,6 @@ document.addEventListener('DOMContentLoaded', function () {
   var tg_id = user ? user.id : null;
   var username = user ? user.username : null;
 
-  // призы
   var prizes = [
     { text: ["Прямой", "перевод", "300₽"], color: '#48dbfb' },
     { text: ["«Дичь от", "логиста»"],       color: '#1dd1a1' },
@@ -28,32 +27,41 @@ document.addEventListener('DOMContentLoaded', function () {
     { text: ["«Быстрая", "полка»"],         color: '#feca57' }
   ];
 
-  // адаптивный канвас под ретину
-  function resizeCanvas() {
-    var dpr = Math.max(1, window.devicePixelRatio || 1);
-    var vw = Math.min(360, Math.floor(window.innerWidth * 0.9));
-    var size = Math.max(260, Math.min(vw, 380));
-    canvas.style.width = size + 'px';
-    canvas.style.height = size + 'px';
-    canvas.width  = Math.floor(size * dpr);
-    canvas.height = Math.floor(size * dpr);
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    drawStatic();
-  }
-  window.addEventListener('resize', resizeCanvas);
-
   var sectors = prizes.length;
   var arc = (2*Math.PI)/sectors;
   var spinDuration = 6000;
   var isSpinning = false;
-  var prizeSent = false; // анти-дубль на фронте
+  var prizeSent = false;
+
+  // ======= РАЗМЕР/RETINA БЕЗ getTransform =======
+  var DPR = Math.max(1, window.devicePixelRatio || 1);
+  var VISUAL_SIZE = 340; // визуальный размер в CSS-пикселях
+  function resizeCanvas() {
+    try {
+      var vw = Math.min(380, Math.floor(window.innerWidth*0.9));
+      VISUAL_SIZE = Math.max(260, vw);
+      canvas.style.width  = VISUAL_SIZE + 'px';
+      canvas.style.height = VISUAL_SIZE + 'px';
+      canvas.width  = Math.floor(VISUAL_SIZE * DPR);
+      canvas.height = Math.floor(VISUAL_SIZE * DPR);
+      ctx.setTransform(1,0,0,1,0,0);
+      ctx.scale(DPR, DPR); // всё рисуем в CSS-пикселях
+      drawStatic();
+    } catch (e) { console.log(e); }
+  }
+  window.addEventListener('resize', resizeCanvas);
+
+  // Центр и радиус в CSS-пикселях
+  function getGeom() {
+    var cx = VISUAL_SIZE/2;
+    var cy = VISUAL_SIZE/2;
+    var r  = (VISUAL_SIZE/2) - 8;
+    return {cx:cx, cy:cy, r:r};
+  }
 
   function drawWheel(angle) {
-    var tr = ctx.getTransform();
-    var scaleX = tr.a  1, scaleY = tr.d  1;
-    var cx = canvas.width  / (2 * scaleX);
-    var cy = canvas.height / (2 * scaleY);
-    var r  = Math.min(cx, cy) - 8;
+    var g = getGeom();
+    var cx=g.cx, cy=g.cy, r=g.r;
 
     ctx.save();
     ctx.translate(cx, cy);
@@ -96,7 +104,7 @@ document.addEventListener('DOMContentLoaded', function () {
     ctx.arc(cx, cy, r+2, 0, Math.PI*2);
     ctx.stroke();
 
-    // «гайка» в центре
+    // гайка
     var grd = ctx.createRadialGradient(cx, cy, 2, cx, cy, 20);
     grd.addColorStop(0, '#fff'); grd.addColorStop(1, '#ccd3ff');
     ctx.fillStyle = grd;
@@ -117,15 +125,23 @@ document.addEventListener('DOMContentLoaded', function () {
     ctx.closePath(); ctx.fill();
     ctx.fillStyle = '#fff';
     ctx.beginPath(); ctx.arc(r + offset - 2, 0, 2.5, 0, Math.PI*2); ctx.fill();
-    ctx.restore();
+    ctx.
+
+restore();
   }
 
-  function drawStatic(){ ctx.clearRect(0,0,canvas.width,canvas.height); drawWheel(0); }
+  function drawStatic(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    drawWheel(0);
+    // Диагностика: надпись в углу
+    ctx.fillStyle = 'rgba(255,255,255,.7)';
+    ctx.font = 'bold 12px Arial';
+    ctx.fillText('init ok', 8, 16);
+  }
 
   function postPrize(payload){
     return fetch(WEBHOOK_URL, {
-
-method:'POST',
+      method:'POST',
       headers:{'Content-Type':'application/json'},
       keepalive:true,
       body:JSON.stringify(payload)
@@ -157,7 +173,7 @@ method:'POST',
         var idx = Math.floor(winningAngle/arc) % sectors;
         var prize = prizes[idx].text.join(' ');
 
-        if (prizeSent) return; // анти-дубль
+        if (prizeSent) return;
         prizeSent = true;
 
         var payload = {
@@ -165,8 +181,7 @@ method:'POST',
           username: username,
           prize: prize,
           ts: Date.now(),
-          event_id: String(tg_id || '0') + '-' + String(Date.now()),
-          initData: (tg && tg.initData) ? tg.initData : ''
+          event_id: String(tg_id || '0') + '-' + String(Date.now())
         };
 
         postPrize(payload).finally(function(){
