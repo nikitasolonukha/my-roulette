@@ -1,5 +1,5 @@
 // === URL твоего n8n-вебхука ===
-var WEBHOOK_URL = 'https://solonflowai.ru/webhook-test/roulette_prize';
+var WEBHOOK_URL = 'https://solonflowai.ru/webhook/roulette_prize';
 
 // Поймаем ошибки, чтобы сразу видеть причину
 window.onerror = function (msg) {
@@ -155,3 +155,4 @@ var winningAngle = (2 * Math.PI - currentAngle) % (2 * Math.PI);
   drawPointer();
   spinBtn.addEventListener('click', spin);
 });
+
