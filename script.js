@@ -1,4 +1,8 @@
-// --- ПРИЗЫ ---
+solonflowai, [08.09.2025 13:54]
+// === КУДА ШЛЁМ ВЕБХУК ===
+const WEBHOOK_URL = 'https://solonflowai.ru/webhook-test/roulette_prize';
+
+// --- ПРИЗЫ (можно менять тексты/цвета) ---
 const prizes = [
   { text: ["Прямой", "перевод", "300₽"], color: '#48dbfb' },
   { text: ["«Дичь от", "логиста»"], color: '#1dd1a1' },
@@ -16,7 +20,33 @@ const arc = (2 * Math.PI) / sectors;
 const spinDuration = 6000;
 let isSpinning = false;
 
-// --- РИСУЕМ ---
+// Telegram WebApp SDK
+const tg = window.Telegram?.WebApp;
+try { tg?.ready(); } catch {}
+
+const user = tg?.initDataUnsafe?.user || null;
+const tg_id = user?.id ?? null;           // id пользователя/чата
+const username = user?.username ?? null;
+
+// --- УТИЛИТА: отправка на сервер ---
+async function postPrizeToServer(payload) {
+  try {
+    const res = await fetch(WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      // keepalive — чтобы запрос не обрывался при закрытии WebApp
+      keepalive: true,
+      mode: 'cors',
+      body: JSON.stringify(payload),
+    });
+    return { ok: res.ok, status: res.status, text: await res.text().catch(()=>'') };
+  } catch (e) {
+    console.error('Webhook error', e);
+    return { ok: false, status: 0, text: String(e) };
+  }
+}
+
+// --- ОТРИСОВКА ---
 function drawRoulette() {
   for (let i = 0; i < sectors; i++) {
     const angle = i * arc;
@@ -88,30 +118,38 @@ function spin() {
     } else {
       const currentAngle = angle % (2 * Math.PI);
       const winningAngle = (2 * Math.PI - currentAngle) % (2 * Math.PI);
-      const winningSectorIndex = Math.floor(winningAngle / arc) % sectors; // фикс
+      const winningSectorIndex = Math.floor(winningAngle / arc) % sectors; // фикс граничного случая
       const prize = prizes[winningSectorIndex].text.join(' ');
 
-      try {
-        if (typeof Telegram !== 'undefined' && Telegram.WebApp && typeof Telegram.WebApp.sendData === 'function') {
-          Telegram.WebApp.sendData(prize);
-          Telegram.WebApp.showAlert(`Отправил приз: ${prize}`);
-          setTimeout(() => { try { Telegram.WebApp.close(); } catch {} }, 1200); // пауза побольше
-        } else {
-          alert(`Ваш приз: ${prize}\n\nОткройте мини-аппу через кнопку в Telegram, иначе бот не получит данные.`);
-          spinBtn.disabled = false; isSpinning = false;
-        }
-      } catch (e) {
-        console.error('sendData error', e);
-        alert(`Ваш приз: ${prize}\n\nНе удалось отправить в бота.`);
-        spinBtn.disabled = false; isSpinning = false;
-      }
+      // Собираем данные и шлём на n8n
+      const payload = {
+        tg_id,                  // Telegram user/chat id
+        username,
+        prize,                  // текст приза
+        ts: Date.now(),
+        initData: tg?.
+
+solonflowai, [08.09.2025 13:54]
+initData || '' // строка для серверной валидации (опционально)
+      };
+
+      postPrizeToServer(payload)
+        .then((res) => {
+          try {
+            tg?.showAlert?.(res.ok ? Отправил приз: ${prize} : `Не отправил (${res.status})`);
+          } catch {}
+        })
+        .finally(() => {
+          // (опц.) можно продублировать в бота через sendData
+          try { tg?.sendData?.(prize); } catch {}
+          setTimeout(() => { try { tg?.close(); } catch {} }, 1200);
+        });
     }
   }
 
   requestAnimationFrame(animate);
 }
 
-try { Telegram.WebApp.ready(); } catch {}
 drawRoulette();
 drawPointer();
 spinBtn.addEventListener('click', spin);
