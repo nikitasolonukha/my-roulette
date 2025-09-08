@@ -1,4 +1,3 @@
-solonflowai, [08.09.2025 13:54]
 // === КУДА ШЛЁМ ВЕБХУК ===
 const WEBHOOK_URL = 'https://solonflowai.ru/webhook-test/roulette_prize';
 
@@ -153,3 +152,4 @@ initData || '' // строка для серверной валидации (о�
 drawRoulette();
 drawPointer();
 spinBtn.addEventListener('click', spin);
+
