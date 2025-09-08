@@ -1,4 +1,4 @@
-// --- ПРИЗЫ (можешь менять тексты/цвета) ---
+// --- ПРИЗЫ ---
 const prizes = [
   { text: ["Прямой", "перевод", "300₽"], color: '#48dbfb' },
   { text: ["«Дичь от", "логиста»"], color: '#1dd1a1' },
@@ -6,7 +6,7 @@ const prizes = [
   { text: ["«Быстрая", "полка»"], color: '#feca57' },
 ];
 
-// --- КЭНВАС/БАЗА ---
+// --- БАЗА ---
 const canvas = document.getElementById('roulette');
 const ctx = canvas.getContext('2d');
 const spinBtn = document.getElementById('spin-btn');
@@ -16,7 +16,7 @@ const arc = (2 * Math.PI) / sectors;
 const spinDuration = 6000;
 let isSpinning = false;
 
-// --- РИСОВАНИЕ ---
+// --- РИСУЕМ ---
 function drawRoulette() {
   for (let i = 0; i < sectors; i++) {
     const angle = i * arc;
@@ -56,7 +56,7 @@ function drawPointer() {
   ctx.restore();
 }
 
-// --- ЛОГИКА КРУТКИ ---
+// --- КРУТКА ---
 function spin() {
   if (isSpinning) return;
   isSpinning = true;
@@ -88,30 +88,22 @@ function spin() {
     } else {
       const currentAngle = angle % (2 * Math.PI);
       const winningAngle = (2 * Math.PI - currentAngle) % (2 * Math.PI);
-      // фикс граничного случая
-      const winningSectorIndex = Math.floor(winningAngle / arc) % sectors;
+      const winningSectorIndex = Math.floor(winningAngle / arc) % sectors; // фикс
       const prize = prizes[winningSectorIndex].text.join(' ');
 
-      // --- отправка в Telegram боту ---
       try {
-        // Проверка, что мы реально в Telegram WebApp
         if (typeof Telegram !== 'undefined' && Telegram.WebApp && typeof Telegram.WebApp.sendData === 'function') {
           Telegram.WebApp.sendData(prize);
-          // даём Телеге завершить отправку и закрываем
-          setTimeout(() => {
-            try { Telegram.WebApp.close(); } catch {}
-          }, 400);
+          Telegram.WebApp.showAlert(`Отправил приз: ${prize}`);
+          setTimeout(() => { try { Telegram.WebApp.close(); } catch {} }, 1200); // пауза побольше
         } else {
-          // Открыли не через web_app (обычная вкладка / прямая ссылка)
           alert(`Ваш приз: ${prize}\n\nОткройте мини-аппу через кнопку в Telegram, иначе бот не получит данные.`);
-          spinBtn.disabled = false;
-          isSpinning = false;
+          spinBtn.disabled = false; isSpinning = false;
         }
       } catch (e) {
         console.error('sendData error', e);
-        alert(`Ваш приз: ${prize}\n\nНе удалось отправить в бота. Убедитесь, что страница открыта через кнопку web_app.`);
-        spinBtn.disabled = false;
-        isSpinning = false;
+        alert(`Ваш приз: ${prize}\n\nНе удалось отправить в бота.`);
+        spinBtn.disabled = false; isSpinning = false;
       }
     }
   }
@@ -119,7 +111,6 @@ function spin() {
   requestAnimationFrame(animate);
 }
 
-// --- ИНИЦИАЛИЗАЦИЯ ---
 try { Telegram.WebApp.ready(); } catch {}
 drawRoulette();
 drawPointer();
