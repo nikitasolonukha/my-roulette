@@ -1,35 +1,46 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Колесо Фортуны</title>
   <style>
     :root{--bg1:#2c3e50;--bg2:#223043;--btn:#4c86ff;--btnText:#fff}
     *{box-sizing:border-box} html,body{height:100%}
-    body{margin:0;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial;
+    body{
+      margin:0;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial;
       display:flex;align-items:center;justify-content:center;
-      background:radial-gradient(1000px 600px at 50% 0%, #34495e 0%, var(--bg1) 50%, var(--bg2) 100%)}
+      background:radial-gradient(1000px 600px at 50% 0%,#34495e 0%,var(--bg1) 50%,var(--bg2) 100%)
+    }
     .container{text-align:center;padding:16px}
     h1{margin:0 0 18px;font-weight:800;letter-spacing:.2px}
+
     .wheel-wrap{position:relative;width:350px;margin:0 auto}
     canvas{display:block;width:350px;height:350px;margin:0 auto;background:transparent}
+
     /* единственная стрелка */
-    #pointer{position:absolute;top:50%;right:-6px;transform:translateY(-50%);
+    #pointer{
+      position:absolute;top:50%;right:-6px;transform:translateY(-50%);
       width:0;height:0;border-top:12px solid transparent;border-bottom:12px solid transparent;
-      border-left:26px solid #ff3b30;filter:drop-shadow(0 2px 2px rgba(0,0,0,.4))}
-    #spin-btn{margin-top:22px;padding:14px 28px;font-size:16px;font-weight:700;cursor:pointer;
+      border-left:26px solid #ff3b30;filter:drop-shadow(0 2px 2px rgba(0,0,0,.4))
+    }
+
+    #spin-btn{
+      margin-top:22px;padding:14px 28px;font-size:16px;font-weight:700;cursor:pointer;
       border:none;border-radius:12px;background:var(--btn);color:var(--btnText);
-      box-shadow:0 10px 24px rgba(76,134,255,.35), inset 0 0 0 1px rgba(255,255,255,.12);
-      transition:transform .08s ease, filter .2s ease}
-    #spin-btn:hover{filter:brightness(1.06)} #spin-btn:active{transform:translateY(1px)}
+      box-shadow:0 10px 24px rgba(76,134,255,.35),inset 0 0 0 1px rgba(255,255,255,.12);
+      transition:transform .08s ease,filter .2s ease
+    }
+    #spin-btn:hover{filter:brightness(1.06)}
+    #spin-btn:active{transform:translateY(1px)}
     #spin-btn:disabled{background:#8a8a8a;cursor:not-allowed;box-shadow:none}
     .hint{opacity:.85;font-size:13px;margin:10px 0 0}
-    /* модалка */
+
+    /* модалка результата */
     .modal{position:fixed;inset:0;background:rgba(0,0,0,.55);
       display:flex;align-items:center;justify-content:center;padding:16px}
     .hidden{display:none}
-    .modal-card{width:min(520px, 92vw);background:#1e2736;border-radius:16px;padding:22px 20px;
+    .modal-card{width:min(520px,92vw);background:#1e2736;border-radius:16px;padding:22px 20px;
       box-shadow:0 12px 30px rgba(0,0,0,.45);text-align:left}
     .modal-title{font-size:18px;font-weight:800;margin:0 0 10px}
     .modal-text{font-size:16px;line-height:1.6;color:#e9eef9;margin:0;white-space:pre-line;letter-spacing:.2px}
@@ -62,50 +73,184 @@
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
-    /* ========= НАСТРОЙКИ ========= */
+    /* ===== НАСТРОЙКА ===== */
     // прод-вебхук n8n
     var WEBHOOK_URL = 'https://solonflowai.ru/webhook/roulette_prize';
 
-    // мемы для «дичь от логиста» (добавь 1–5 ссылок)
+    // мемы для «дичь от логиста» (добавь свои URL при желании)
     var LOGIST_MEMES = [
       // 'https://example.com/meme1.jpg',
       // 'https://example.com/meme2.png',
     ];
 
-    /* ========= Telegram SDK ========= */
+    /* ===== Telegram SDK ===== */
     var tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
     try{ tg && tg.ready && tg.ready(); }catch(_){}
     var user = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user : null;
     var TG_ID = user ? user.id : null;
     var USERNAME = user ? user.username : null;
 
-    /* ========= DOM ========= */
+    /* ===== DOM ===== */
     var canvas = document.getElementById('roulette');
     var ctx = canvas.getContext('2d');
     var spinBtn = document.getElementById('spin-btn');
-
-var hint = document.getElementById('hint');
+    var hint = document.getElementById('hint');
     var modal = document.getElementById('result-modal');
     var resultText = document.getElementById('result-text');
     var memeImg = document.getElementById('meme');
     var closeModal = document.getElementById('close-modal');
 
-    /* ========= ДАННЫЕ СЕКТОРОВ ========= */
+    /* ===== ДАННЫЕ СЕКТОРОВ ===== */
     var prizes = [
       { label: 'сок благодарности', color: '#ff6b6b' },
       { label: 'быстрая полка',     color: '#feca57' },
       { label: 'прямой перевод',    color: '#48dbfb' },
       { label: 'дичь от логиста',   color: '#1dd1a1' }
     ];
-
     var sectors = prizes.length;
     var arc = (2*Math.PI)/sectors;
+
+    /* ===== ГЕОМЕТРИЯ/ОТРИСОВКА: универсально и чётко ===== */
     var spinning = false;
-    var DPR = Math.max(1, window.devicePixelRatio || 1);
-    var VISUAL_SIZE = 350;
     var alreadyPlayed = false;
 
-    /* ========= ТЕКСТ ДЛЯ ЧАТА (HTML) ========= */
+    // эффективный DPR: учитываем zoom visualViewport, округляем до целого
+    function getEffectiveDPR(){
+      var dv = (window.devicePixelRatio || 1);
+      var vs = (window.visualViewport && window.visualViewport.scale) ? window.visualViewport.scale : 1;
+      return Math.max(1, Math.round(dv * vs));
+    }
+    var DPR = getEffectiveDPR();
+    var VISUAL_SIZE = 350; // CSS-пиксели
+
+    function resizeCanvas(){
+      // адаптив по ширине окна
+      var vw = Math.min(420, Math.floor(window.innerWidth * 0.92));
+      VISUAL_SIZE = Math.max(260, vw);
+
+      // CSS-размер
+      canvas.style.width  = VISUAL_SIZE + 'px';
+      canvas.style.height = VISUAL_SIZE + 'px';
+
+      // Реальный размер КРАТЕН DPR (целые числа => чётче)
+      DPR = getEffectiveDPR();
+      canvas.width  = VISUAL_SIZE * DPR;
+      canvas.height = VISUAL_SIZE * DPR;
+
+      // масштаб контекста в логические CSS-пиксели
+      ctx.setTransform(1,0,0,1,0,0);
+      ctx.scale(DPR, DPR);
+      ctx.imageSmoothingEnabled = true;
+
+      drawStatic();
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    // Хелпер: подгон текста (уменьшаем шрифт; при необходимости переносим на 2 строки)
+    function fitLabelToSector(ctx, label, maxWidthPx, baseFontPx, minFontPx) {
+      let fontPx = baseFontPx;
+      while (fontPx >= minFontPx) {
+        ctx.font = 600 ${fontPx}px -apple-system, Segoe UI, Roboto, Arial;
+        if (ctx.measureText(label).width <= maxWidthPx) {
+          return { lines: [label], fontPx };
+        }
+        fontPx -= 1;
+      }
+      const words = label.split(' ');
+      if (words.length === 1) return { lines: [label], fontPx: minFontPx };
+
+      // подбираем перенос
+      for (let cut = 1; cut < words.length; cut++) {
+        const l1 = words.slice(0, cut).join(' ');
+        const l2 = words.slice(cut).join(' ');
+        let fp = baseFontPx;
+        while (fp >= minFontPx) {
+          ctx.font = 600 ${fp}px -apple-system, Segoe UI, Roboto, Arial;
+          if (Math.max(ctx.measureText(l1).width, ctx.measureText(l2).width) <= maxWidthPx) {
+            return { lines: [l1, l2], fontPx: fp };
+          }
+          fp -= 1;
+        }
+      }
+      return { lines: [label], fontPx: minFontPx };
+    }
+
+    function drawWheel(angle){
+      var W = VISUAL_SIZE, H = VISUAL_SIZE;
+
+      // “прищёлкиваем” к полу-пикселю для резкости обводок
+      var cx = Math.floor(W/2) + 0.5;
+      var cy = Math.floor(H/2) + 0.5;
+      var r  = Math.floor(Math.min(cx, cy) - 8) + 0.5;
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(angle || 0);
+      ctx.translate(-cx, -cy);
+
+      for (var i=0;i<sectors;i++){
+        var a0 = i*arc, a1 = a0 + arc;
+
+        // сектор
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.fillStyle = prizes[i].color;
+        ctx.arc(cx, cy, r, a0, a1);
+        ctx.closePath();
+        ctx.fill();
+
+        // граница сектора (тонкая, чёткая)
+        ctx.strokeStyle = 'rgba(0,0,0,.15)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, a0, a1);
+        ctx.stroke();
+
+        // подпись — авто-подгон/перенос, безопасный отступ внутрь
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(a0 + arc/2);
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        // на мобилках тень слабее/откл. для чёткости
+        var isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+        ctx.shadowColor = isMobile ? 'rgba(0,0,0,.2)' : 'rgba(0,0,0,.3)';
+        ctx.shadowBlur  = isMobile ? 0.8 : 1.2;
+
+        const maxTextWidth = r * 0.68;
+        const baseFontPx   = 16;
+        const minFontPx    = 11;
+        const tx           = r * 0.56;
+
+        const fitted = fitLabelToSector(ctx, prizes[i].label, maxTextWidth, baseFontPx, minFontPx);
+        ctx.font = 600 ${fitted.fontPx}px -apple-system, Segoe UI, Roboto, Arial;
+
+        if (fitted.lines.length === 1){
+          ctx.fillText(fitted.lines[0], tx, 0);
+        } else {
+          const lh = fitted.fontPx + 2;
+          ctx.fillText(fitted.lines[0], tx, -lh/2);
+          ctx.fillText(fitted.lines[1], tx,  lh/2);
+        }
+        ctx.restore();
+      }
+      ctx.restore();
+
+      // белый ободок диска (толще — контрастнее)
+      ctx.lineWidth = 6;
+      ctx.strokeStyle = 'rgba(255,255,255,.9)';
+      ctx.beginPath(); ctx.arc(cx, cy, r+2, 0, Math.PI*2); ctx.stroke();
+
+      // центр
+      ctx.fillStyle = '#e5ecff';
+      ctx.beginPath(); ctx.arc(cx, cy, 14, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,.12)'; ctx.lineWidth = 1; ctx.stroke();
+    }
+    function drawStatic(){ ctx.clearRect(0,0,canvas.width,canvas.height); drawWheel(0); }
+
+    /* ===== ТЕКСТЫ ===== */
     function buildMessageHTML(prizeLabel){
       if (prizeLabel === 'сок благодарности')
         return '🎉 <b>Поздравляем!</b> Вам выпал приз: 🧃 <b>Сок благодарности</b>\n\n💸 100 ₽ на карту.\n📩 Пришлите скрин вашему логисту — он всё организует.';
@@ -117,8 +262,6 @@ var hint = document.getElementById('hint');
         return '🎉 <b>Поздравляем!</b> Вам выпал приз: 😂 <b>Дичь от логиста</b>\n\nЛови мем! 😉';
       return '🎉 <b>Поздравляем!</b> Ваш приз: ' + prizeLabel;
     }
-
-    /* ========= ТЕКСТ ДЛЯ МОДАЛКИ ========= */
     function textForModal(prizeLabel){
       if (prizeLabel === 'сок благодарности')
         return 'Сок благодарности — 100 руб. на карту.\nПришлите скрин вашему логисту — он всё организует.';
@@ -131,54 +274,7 @@ var hint = document.getElementById('hint');
       return prizeLabel;
     }
 
-    /* ========= CANVAS ========= */
-    function resizeCanvas(){
-      var vw = Math.min(380, Math.floor(window.innerWidth*0.9));
-      VISUAL_SIZE = Math.max(260, vw);
-      canvas.style.width = VISUAL_SIZE+'px';
-      canvas.style.height = VISUAL_SIZE+'px';
-      canvas.width = Math.floor(VISUAL_SIZE*DPR);
-      canvas.height = Math.floor(VISUAL_SIZE*DPR);
-      ctx.setTransform(1,0,0,1,0,0);
-      ctx.scale(DPR, DPR);
-      ctx.imageSmoothingEnabled = true;
-      drawStatic();
-    }
-    window.addEventListener('resize', resizeCanvas);
-
-    function drawWheel(angle){
-      var W = VISUAL_SIZE, H = VISUAL_SIZE;
-      var cx=W/2, cy=H/2, r=Math.min(cx,cy)-8;
-
-      ctx.save(); ctx.translate(cx,cy); ctx.rotate(angle||0); ctx.translate(-cx,-cy);
-      for (var i=0;i<sectors;i++){
-        var a0=i*arc, a1=a0+arc;
-        ctx.beginPath(); ctx.moveTo(cx,cy);
-        ctx.fillStyle=prizes[i].color; ctx.arc(cx,cy,r,a0,a1); ctx.closePath(); ctx.fill();
-
-        ctx.strokeStyle='rgba(0,0,0,.15)'; ctx.lineWidth=1;
-        ctx.beginPath(); ctx.arc(cx,cy,r,a0,a1); ctx.stroke();
-
-        ctx.save(); ctx.translate(cx,cy); ctx.rotate(a0+arc/2);
-        ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.font='600 16px -apple-system, Segoe UI, Roboto, Arial';
-        ctx.shadowColor='rgba(0,0,0,.35)'; ctx.shadowBlur=1.5;
-        ctx.fillText(prizes[i].label, r*0.58, 0);
-        ctx.restore();
-      }
-      ctx.restore();
-
-      ctx.lineWidth=6; ctx.strokeStyle='rgba(255,255,255,.9)';
-      ctx.beginPath(); ctx.arc(cx,cy,r+2,0,Math.PI*2); ctx.stroke();
-
-      ctx.fillStyle='#e5ecff'; ctx.beginPath(); ctx.arc(cx,cy,14,0,Math.PI*2); ctx.
-
-fill();
-      ctx.strokeStyle='rgba(0,0,0,.12)'; ctx.lineWidth=1; ctx.stroke();
-    }
-    function drawStatic(){ ctx.clearRect(0,0,canvas.width,canvas.height); drawWheel(0); }
-
-    /* ========= ВЕБХУК ========= */
+    /* ===== ВЕБХУК ===== */
     function postPrize(payload){
       return fetch(WEBHOOK_URL, {
         method:'POST',
@@ -188,10 +284,11 @@ fill();
       }).catch(()=>{});
     }
 
-    /* ========= СПИН ========= */
+    /* ===== СПИН ===== */
     function spin(){
       if (spinning) return;
-      // локальная блокировка (кроме режима dev=1)
+
+      // режим теста — можно крутить сколько угодно
       var params = new URLSearchParams(location.search);
       var DEV = params.get('dev') === '1';
       if (!DEV && alreadyPlayed) return;
@@ -203,25 +300,24 @@ fill();
 
       function frame(ts){
         if(!start) start = ts;
-        var p=Math.min(1,(ts-start)/duration);
-        var ease=1-Math.pow(1-p,4);
-        var angle=ease*total;
+        var p = Math.min(1, (ts - start)/duration);
+        var ease = 1 - Math.pow(1-p, 4);
+        var angle = ease * total;
 
         ctx.clearRect(0,0,canvas.width,canvas.height);
         drawWheel(angle);
 
-        if(p<1){ requestAnimationFrame(frame); }
-        else{
-          var current = angle%(2*Math.PI);
-          var winAngle = (2*Math.PI - current)%(2*Math.PI);
-          var idx = Math.floor(winAngle/arc)%sectors;
+        if (p < 1){
+          requestAnimationFrame(frame);
+        } else {
+          var current = angle % (2*Math.PI);
+          var winAngle = (2*Math.PI - current) % (2*Math.PI);
+          var idx = Math.floor(winAngle/arc) % sectors;
           var prizeLabel = prizes[idx].label;
 
-          // сообщение для чата (HTML) и для модалки
           var messageHTML = buildMessageHTML(prizeLabel);
-          var modalText = textForModal(prizeLabel);
+          var modalText   = textForModal(prizeLabel);
 
-          // мем (если нужен)
           var memeUrl = '';
           if (prizeLabel === 'дичь от логиста' && LOGIST_MEMES.length){
             memeUrl = LOGIST_MEMES[Math.floor(Math.random()*LOGIST_MEMES.length)];
@@ -236,26 +332,26 @@ fill();
           }
           modal.classList.remove('hidden');
 
-          // лок-1-раз
+          // локальный “1 раз”
           try{ if(!DEV) localStorage.setItem('roulette_played','1'); }catch(_){}
           alreadyPlayed = !DEV;
 
-          // отправить в n8n
+          // отправка в n8n
           postPrize({
             tg_id: TG_ID,
             username: USERNAME,
-            prize: prizeLabel,          // короткое название
-            message_html: messageHTML,  // готовый красивый текст
-            meme_url: memeUrl,          // если есть
+            prize: prizeLabel,
+            message_html: messageHTML,
+            meme_url: memeUrl,
             ts: Date.now(),
-            event_id: String(TG_ID||'0')+'-'+String(Date.now())
+            event_id: String(TG_ID||'0') + '-' + String(Date.now())
           });
         }
       }
       requestAnimationFrame(frame);
     }
 
-    /* ========= INIT ========= */
+    /* ===== INIT ===== */
     (function init(){
       try{
         var params = new URLSearchParams(location.search);
@@ -275,4 +371,3 @@ fill();
   </script>
 </body>
 </html>
-
