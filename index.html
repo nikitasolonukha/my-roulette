@@ -48,6 +48,12 @@
     .modal-btn{margin-top:16px;padding:12px 18px;border:none;border-radius:10px;background:#36b37e;
       color:#fff;font-weight:700;cursor:pointer;box-shadow:0 6px 16px rgba(54,179,126,.35)}
     .meme{display:block;width:100%;max-height:360px;object-fit:contain;margin-top:14px;border-radius:10px}
+
+    /* на десктопах — больше стартовый размер */
+    @media (min-width:1024px){
+      .wheel-wrap{width:440px}
+      canvas{width:440px;height:440px}
+    }
   </style>
 </head>
 <body>
@@ -74,10 +80,10 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
     /* ===== НАСТРОЙКА ===== */
-    // прод-вебхук n8n
+    // прод-вебхук n8n — поменяй на свой при необходимости
     var WEBHOOK_URL = 'https://solonflowai.ru/webhook/roulette_prize';
 
-    // мемы для «дичь от логиста» (добавь свои URL при желании)
+    // мемы для «дичь от логиста» (по желанию добавь ссылки)
     var LOGIST_MEMES = [
       // 'https://example.com/meme1.jpg',
       // 'https://example.com/meme2.png',
@@ -90,15 +96,15 @@
     var TG_ID = user ? user.id : null;
     var USERNAME = user ? user.username : null;
 
+    /* ===== Версионированный флаг «крутил» + dev/reset ===== */
+    var urlParams   = new URLSearchParams(location.search);
+    var APP_VERSION = urlParams.get('v') || '1';
+    var DEV_MODE    = urlParams.get('dev') === '1';
+    var RESET_FLAG  = urlParams.get('reset') === '1';
+    var STORAGE_KEY = 'roulette_played_v' + APP_VERSION;
+
     /* ===== DOM ===== */
-    var canvas = document.getElementById('roulette');
-    var ctx = canvas.getContext('2d');
-    var spinBtn = document.getElementById('spin-btn');
-    var hint = document.getElementById('hint');
-    var modal = document.getElementById('result-modal');
-    var resultText = document.getElementById('result-text');
-    var memeImg = document.getElementById('meme');
-    var closeModal = document.getElementById('close-modal');
+    var canvas, ctx, spinBtn, hint, modal, resultText, memeImg, closeModal;
 
     /* ===== ДАННЫЕ СЕКТОРОВ ===== */
     var prizes = [
@@ -110,47 +116,44 @@
     var sectors = prizes.length;
     var arc = (2*Math.PI)/sectors;
 
-    /* ===== ГЕОМЕТРИЯ/ОТРИСОВКА: универсально и чётко ===== */
+    /* ===== ГЕОМЕТРИЯ/ОТРИСОВКА ===== */
     var spinning = false;
     var alreadyPlayed = false;
+    var DPR = 1;
+    var VISUAL_SIZE = 350; // CSS-пиксели
 
-    // эффективный DPR: учитываем zoom visualViewport, округляем до целого
     function getEffectiveDPR(){
       var dv = (window.devicePixelRatio || 1);
       var vs = (window.visualViewport && window.visualViewport.scale) ? window.visualViewport.scale : 1;
-      return Math.max(1, Math.round(dv * vs));
+      return Math.max(1, Math.round(dv * vs)); // целое => чётче
     }
-    var DPR = getEffectiveDPR();
-    var VISUAL_SIZE = 350; // CSS-пиксели
 
     function resizeCanvas(){
-      // адаптив по ширине окна
-      var vw = Math.min(420, Math.floor(window.innerWidth * 0.92));
-      VISUAL_SIZE = Math.max(260, vw);
+      // динамический размер от ширины и высоты окна
+      var w = Math.floor(window.innerWidth  * 0.92);
+      var h = Math.floor(window.innerHeight * 0.55);
+      var side = Math.min(480, Math.max(280, Math.min(w, h)));
+      VISUAL_SIZE = side;
 
-      // CSS-размер
       canvas.style.width  = VISUAL_SIZE + 'px';
       canvas.style.height = VISUAL_SIZE + 'px';
 
-      // Реальный размер КРАТЕН DPR (целые числа => чётче)
       DPR = getEffectiveDPR();
       canvas.width  = VISUAL_SIZE * DPR;
       canvas.height = VISUAL_SIZE * DPR;
 
-      // масштаб контекста в логические CSS-пиксели
       ctx.setTransform(1,0,0,1,0,0);
       ctx.scale(DPR, DPR);
       ctx.imageSmoothingEnabled = true;
 
       drawStatic();
     }
-    window.addEventListener('resize', resizeCanvas);
 
-    // Хелпер: подгон текста (уменьшаем шрифт; при необходимости переносим на 2 строки)
+    // Хелпер: авто-подгон шрифта + перенос до двух строк
     function fitLabelToSector(ctx, label, maxWidthPx, baseFontPx, minFontPx) {
       let fontPx = baseFontPx;
       while (fontPx >= minFontPx) {
-        ctx.font = "600 ${fontPx}px -apple-system, Segoe UI, Roboto, Arial";
+        ctx.font = `600 ${fontPx}px -apple-system, Segoe UI, Roboto, Arial`;
         if (ctx.measureText(label).width <= maxWidthPx) {
           return { lines: [label], fontPx };
         }
@@ -159,13 +162,12 @@
       const words = label.split(' ');
       if (words.length === 1) return { lines: [label], fontPx: minFontPx };
 
-      // подбираем перенос
       for (let cut = 1; cut < words.length; cut++) {
         const l1 = words.slice(0, cut).join(' ');
         const l2 = words.slice(cut).join(' ');
         let fp = baseFontPx;
         while (fp >= minFontPx) {
-          ctx.font = "600 ${fp}px -apple-system, Segoe UI, Roboto, Arial";
+          ctx.font = `600 ${fp}px -apple-system, Segoe UI, Roboto, Arial`;
           if (Math.max(ctx.measureText(l1).width, ctx.measureText(l2).width) <= maxWidthPx) {
             return { lines: [l1, l2], fontPx: fp };
           }
@@ -178,7 +180,7 @@
     function drawWheel(angle){
       var W = VISUAL_SIZE, H = VISUAL_SIZE;
 
-      // “прищёлкиваем” к полу-пикселю для резкости обводок
+      // «прищёлкнутые» координаты для чётких линий
       var cx = Math.floor(W/2) + 0.5;
       var cy = Math.floor(H/2) + 0.5;
       var r  = Math.floor(Math.min(cx, cy) - 8) + 0.5;
@@ -199,14 +201,14 @@
         ctx.closePath();
         ctx.fill();
 
-        // граница сектора (тонкая, чёткая)
+        // граница сектора
         ctx.strokeStyle = 'rgba(0,0,0,.15)';
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.arc(cx, cy, r, a0, a1);
         ctx.stroke();
 
-        // подпись — авто-подгон/перенос, безопасный отступ внутрь
+        // подпись — крупная, читаемая, но не вылезает
         ctx.save();
         ctx.translate(cx, cy);
         ctx.rotate(a0 + arc/2);
@@ -214,18 +216,20 @@
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
 
-        // на мобилках тень слабее/откл. для чёткости
-        var isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-        ctx.shadowColor = isMobile ? 'rgba(0,0,0,.2)' : 'rgba(0,0,0,.3)';
-        ctx.shadowBlur  = isMobile ? 0.8 : 1.2;
+        // динамика от радиуса
+        const baseFontPx = Math.round(Math.min(22, Math.max(13, r * 0.065)));
+        const minFontPx  = Math.max(11, baseFontPx - 5);
 
-        const maxTextWidth = r * 0.68;
-        const baseFontPx   = 16;
-        const minFontPx    = 11;
-        const tx           = r * 0.56;
+        const maxTextWidth = r * 0.70; // безопасная ширина
+        const tx           = r * 0.55; // чуть глубже внутрь сектора
 
         const fitted = fitLabelToSector(ctx, prizes[i].label, maxTextWidth, baseFontPx, minFontPx);
-        ctx.font = "600 ${fitted.fontPx}px -apple-system, Segoe UI, Roboto, Arial";
+        ctx.font = `600 ${fitted.fontPx}px -apple-system, Segoe UI, Roboto, Arial`;
+
+        // лёгкая тень: на мобилках слабее
+        var isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+        ctx.shadowColor = isMobile ? 'rgba(0,0,0,.2)' : 'rgba(0,0,0,.28)';
+        ctx.shadowBlur  = isMobile ? 0.6 : 1.1;
 
         if (fitted.lines.length === 1){
           ctx.fillText(fitted.lines[0], tx, 0);
@@ -238,7 +242,7 @@
       }
       ctx.restore();
 
-      // белый ободок диска (толще — контрастнее)
+      // белый ободок
       ctx.lineWidth = 6;
       ctx.strokeStyle = 'rgba(255,255,255,.9)';
       ctx.beginPath(); ctx.arc(cx, cy, r+2, 0, Math.PI*2); ctx.stroke();
@@ -288,10 +292,7 @@
     function spin(){
       if (spinning) return;
 
-      // режим теста — можно крутить сколько угодно
-      var params = new URLSearchParams(location.search);
-      var DEV = params.get('dev') === '1';
-      if (!DEV && alreadyPlayed) return;
+      if (!DEV_MODE && alreadyPlayed) return; // «1 раз» (кроме dev)
 
       spinning = true; spinBtn.disabled = true;
 
@@ -323,7 +324,7 @@
             memeUrl = LOGIST_MEMES[Math.floor(Math.random()*LOGIST_MEMES.length)];
           }
 
-          // показать модалку
+          // модалка
           resultText.textContent = modalText;
           if (memeUrl){
             memeImg.src = memeUrl; memeImg.classList.remove('hidden'); memeImg.style.display='block';
@@ -332,9 +333,9 @@
           }
           modal.classList.remove('hidden');
 
-          // локальный “1 раз”
-          try{ if(!DEV) localStorage.setItem('roulette_played','1'); }catch(_){}
-          alreadyPlayed = !DEV;
+          // локальный «1 раз»
+          try{ if(!DEV_MODE) localStorage.setItem(STORAGE_KEY,'1'); }catch(_){}
+          alreadyPlayed = !DEV_MODE;
 
           // отправка в n8n
           postPrize({
@@ -352,23 +353,42 @@
     }
 
     /* ===== INIT ===== */
-    (function init(){
+    function init(){
+      // DOM
+      canvas     = document.getElementById('roulette');
+      ctx        = canvas.getContext('2d');
+      spinBtn    = document.getElementById('spin-btn');
+      hint       = document.getElementById('hint');
+      modal      = document.getElementById('result-modal');
+      resultText = document.getElementById('result-text');
+      memeImg    = document.getElementById('meme');
+      closeModal = document.getElementById('close-modal');
+
+      // reset по параметру
+      try{ if (RESET_FLAG) localStorage.removeItem(STORAGE_KEY); }catch(_){}
+
+      // «1 раз» (кроме dev)
       try{
-        var params = new URLSearchParams(location.search);
-        var DEV = params.get('dev') === '1';
-        if (!DEV && localStorage.getItem('roulette_played')==='1'){
+        if (!DEV_MODE && localStorage.getItem(STORAGE_KEY)==='1'){
           alreadyPlayed = true; spinBtn.disabled = true;
           hint.textContent = 'Вы уже крутили колесо на этом устройстве.';
         }
       }catch(_){}
+
       resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
       spinBtn.addEventListener('click', spin);
       closeModal.addEventListener('click', function(){
         modal.classList.add('hidden');
         try{ tg && tg.close && tg.close(); }catch(_){}
       });
-    })();
+    }
+
+    if (document.readyState === 'loading'){
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
   </script>
 </body>
 </html>
-
