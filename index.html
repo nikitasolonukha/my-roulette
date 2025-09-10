@@ -150,7 +150,7 @@
     function fitLabelToSector(ctx, label, maxWidthPx, baseFontPx, minFontPx) {
       let fontPx = baseFontPx;
       while (fontPx >= minFontPx) {
-        ctx.font = 600 ${fontPx}px -apple-system, Segoe UI, Roboto, Arial;
+        ctx.font = "600 ${fontPx}px -apple-system, Segoe UI, Roboto, Arial";
         if (ctx.measureText(label).width <= maxWidthPx) {
           return { lines: [label], fontPx };
         }
@@ -165,7 +165,7 @@
         const l2 = words.slice(cut).join(' ');
         let fp = baseFontPx;
         while (fp >= minFontPx) {
-          ctx.font = 600 ${fp}px -apple-system, Segoe UI, Roboto, Arial;
+          ctx.font = "600 ${fp}px -apple-system, Segoe UI, Roboto, Arial";
           if (Math.max(ctx.measureText(l1).width, ctx.measureText(l2).width) <= maxWidthPx) {
             return { lines: [l1, l2], fontPx: fp };
           }
@@ -225,7 +225,7 @@
         const tx           = r * 0.56;
 
         const fitted = fitLabelToSector(ctx, prizes[i].label, maxTextWidth, baseFontPx, minFontPx);
-        ctx.font = 600 ${fitted.fontPx}px -apple-system, Segoe UI, Roboto, Arial;
+        ctx.font = "600 ${fitted.fontPx}px -apple-system, Segoe UI, Roboto, Arial";
 
         if (fitted.lines.length === 1){
           ctx.fillText(fitted.lines[0], tx, 0);
@@ -371,3 +371,4 @@
   </script>
 </body>
 </html>
+
