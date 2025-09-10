@@ -4,18 +4,32 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Колесо Фортуны</title>
-  <link rel="stylesheet" href="style.css?v=113"/>
+  <link rel="stylesheet" href="style.css?v=200"/>
 </head>
 <body>
   <div class="container">
     <h1>Испытай свою удачу!</h1>
-    <canvas id="roulette" width="350" height="350"></canvas>
+
+    <div class="wheel-wrap">
+      <canvas id="roulette" width="350" height="350"></canvas>
+      <div id="pointer"></div>
+    </div>
+
     <button id="spin-btn">Крутить!</button>
+    <p id="hint" class="hint"></p>
+  </div>
+
+  <!-- модалка результата -->
+  <div id="result-modal" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-title">Ваш приз</div>
+      <div id="result-text" class="modal-text"></div>
+      <img id="meme" class="meme hidden" alt="мем"/>
+      <button id="close-modal" class="modal-btn">Понятно</button>
+    </div>
   </div>
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script src="script.js?v=117"></script>
+  <script src="script.js?v=200"></script>
 </body>
 </html>
-
-
