@@ -113,11 +113,11 @@
 
     /* ===== ДАННЫЕ СЕКТОРОВ ===== */
     var prizes = [
-      { label: 'сок благодарности', color: '#ff6b6b' },
-      { label: 'быстрая полка',     color: '#feca57' },
-      { label: 'прямой перевод',    color: '#48dbfb' },
-      { label: 'дичь от логиста',   color: '#1dd1a1' }
-    ];
+  { label: 'дичь от логиста',   color: '#1dd1a1', weight: 5 }, // мемы — чаще
+  { label: 'сок благодарности', color: '#ff6b6b', weight: 3 }, // 100 ₽
+  { label: 'быстрая полка',     color: '#feca57', weight: 2 }, // доставка
+  { label: 'прямой перевод',    color: '#48dbfb', weight: 1 }  // 300 ₽ — реже всего
+];
     var sectors = prizes.length;
     var arc = (2*Math.PI)/sectors;
 
@@ -293,41 +293,84 @@
       }).catch(()=>{});
     }
 
-    /* ===== СПИН ===== */
-    function spin(){
-      if (spinning) return;
+/* ===== СПИН (веса) ===== */
+function pickIndexByWeight(arr) {
+  const total = arr.reduce((s, x) => s + (x.weight || 1), 0);
+  let r = Math.random() * total;
+  for (let i = 0; i < arr.length; i++) {
+    r -= (arr[i].weight || 1);
+    if (r <= 0) return i;
+  }
+  return arr.length - 1;
+}
 
-      if (!DEV_MODE && alreadyPlayed) return; // «1 раз» (кроме dev)
+function spin(){
+  if (spinning) return;
+  if (!DEV_MODE && alreadyPlayed) return; // «1 раз» (кроме dev)
 
-      spinning = true; spinBtn.disabled = true;
+  spinning = true; 
+  spinBtn.disabled = true;
 
-      var total = (Math.random()*5 + 8)*2*Math.PI + Math.random()*2*Math.PI;
-      var start=null, duration=6000;
+  // выбор сектора по весам + целевая остановка
+  var chosenIdx = pickIndexByWeight(prizes);
+  var stopAngle = chosenIdx * arc + arc/2;
+  var total = (Math.random()*5 + 8)*2*Math.PI + stopAngle;
+  var start = null, duration = 6000;
 
-      function frame(ts){
-        if(!start) start = ts;
-        var p = Math.min(1, (ts - start)/duration);
-        var ease = 1 - Math.pow(1-p, 4);
-        var angle = ease * total;
+  function frame(ts){
+    if(!start) start = ts;
+    var p = Math.min(1, (ts - start)/duration);
+    var ease = 1 - Math.pow(1 - p, 4);
+    var angle = ease * total;
 
-        ctx.clearRect(0,0,canvas.width,canvas.height);
-        drawWheel(angle);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawWheel(angle);
 
-        if (p < 1){
-          requestAnimationFrame(frame);
-        } else {
-          var current = angle % (2*Math.PI);
-          var winAngle = (2*Math.PI - current) % (2*Math.PI);
-          var idx = Math.floor(winAngle/arc) % sectors;
-          var prizeLabel = prizes[idx].label;
+    if (p < 1){
+      requestAnimationFrame(frame);
+    } else {
+      var idx = chosenIdx;
+      var prizeLabel = prizes[idx].label;
 
-          var messageHTML = buildMessageHTML(prizeLabel);
-          var modalText   = textForModal(prizeLabel);
+      var memeUrl = '';
+      if (prizeLabel === 'дичь от логиста' && LOGIST_MEMES.length){
+        memeUrl = LOGIST_MEMES[Math.floor(Math.random()*LOGIST_MEMES.length)];
+      }
 
-          var memeUrl = '';
-          if (prizeLabel === 'дичь от логиста' && LOGIST_MEMES.length){
-            memeUrl = LOGIST_MEMES[Math.floor(Math.random()*LOGIST_MEMES.length)];
-          }
+      var messageHTML = buildMessageHTML(prizeLabel, memeUrl);
+      var modalText   = textForModal(prizeLabel);
+
+      // модалка
+      resultText.textContent = modalText;
+      if (memeUrl){
+        memeImg.src = memeUrl; 
+        memeImg.classList.remove('hidden'); 
+        memeImg.style.display = 'block';
+      } else {
+        memeImg.removeAttribute('src'); 
+        memeImg.classList.add('hidden'); 
+        memeImg.style.display = 'none';
+      }
+      modal.classList.remove('hidden');
+
+      // локальный «1 раз»
+      try{ if(!DEV_MODE) localStorage.setItem(STORAGE_KEY, '1'); }catch(_){}
+      alreadyPlayed = !DEV_MODE;
+
+      // отправка в n8n
+      postPrize({
+        tg_id: TG_ID,
+        username: USERNAME,
+        prize: prizeLabel,
+        message_html: messageHTML,
+        meme_url: memeUrl,
+        ts: Date.now(),
+        event_id: String(TG_ID||'0') + '-' + String(Date.now())
+      });
+    }
+  }
+  requestAnimationFrame(frame);
+}
 
           // модалка
           resultText.textContent = modalText;
@@ -397,6 +440,7 @@
   </script>
 </body>
 </html>
+
 
 
 
