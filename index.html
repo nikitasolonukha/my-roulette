@@ -329,8 +329,10 @@ function spin(){
     if (p < 1){
       requestAnimationFrame(frame);
     } else {
-      var idx = chosenIdx;
-      var prizeLabel = prizes[idx].label;
+      var current = angle % (2 * Math.PI);
+      var winAngle = (2 * Math.PI - current) % (2 * Math.PI);
+      var idx = Math.floor(winAngle / arc) % sectors;
+      var prizeLabel = prizes[idx].label;;
 
       var memeUrl = '';
       if (prizeLabel === 'дичь от логиста' && LOGIST_MEMES.length){
@@ -412,6 +414,7 @@ function spin(){
   </script>
 </body>
 </html>
+
 
 
 
