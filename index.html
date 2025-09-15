@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
   <title>Колесо Фортуны</title>
   <style>
     :root{--bg1:#2c3e50;--bg2:#223043;--btn:#4c86ff;--btnText:#fff}
@@ -12,11 +12,31 @@
       display:flex;align-items:center;justify-content:center;
       background:radial-gradient(1000px 600px at 50% 0%,#34495e 0%,var(--bg1) 50%,var(--bg2) 100%)
     }
-    .container{text-align:center;padding:16px}
-    h1{margin:0 0 18px;font-weight:800;letter-spacing:.2px}
+    .container{
+  height:100vh;               /* на всю высоту экрана */
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  text-align:center;
+  padding:10px 12px;
+}
 
-    .wheel-wrap{position:relative;width:350px;margin:0 auto}
-    canvas{display:block;width:350px;height:350px;margin:0 auto;background:transparent}
+.wheel-wrap{
+  position:relative;
+  width:min(90vw, 70vh);      /* не шире экрана и не выше 70% высоты */
+  max-width:480px;            /* «потолок» на десктопах */
+  aspect-ratio:1 / 1;         /* всегда квадрат */
+  margin:0 auto;
+}
+
+canvas{
+  display:block;
+  width:100%;
+  height:100%;
+  background:transparent;
+}
+
 
     /* единственная стрелка */
     #pointer{
@@ -49,10 +69,7 @@
       color:#fff;font-weight:700;cursor:pointer;box-shadow:0 6px 16px rgba(54,179,126,.35)}
     .meme{display:block;width:100%;max-height:360px;object-fit:contain;margin-top:14px;border-radius:10px}
 
-    /* на десктопах — больше стартовый размер */
-    @media (min-width:1024px){
-      .wheel-wrap{width:440px}
-      canvas{width:440px;height:440px}
+    
     }
   </style>
 </head>
@@ -133,26 +150,28 @@
       return Math.max(1, Math.round(dv * vs)); // целое => чётче
     }
 
-    function resizeCanvas(){
-      // динамический размер от ширины и высоты окна
-      var w = Math.floor(window.innerWidth  * 0.92);
-      var h = Math.floor(window.innerHeight * 0.55);
-      var side = Math.min(480, Math.max(280, Math.min(w, h)));
-      VISUAL_SIZE = side;
+   function resizeCanvas(){
+  // Берём фактический размер .wheel-wrap, чтобы CSS и canvas совпадали пиксель-в-пиксель
+  var wrap = document.querySelector('.wheel-wrap');
+  var rect = wrap.getBoundingClientRect();
+  var side = Math.round(Math.min(rect.width, rect.height));
+  VISUAL_SIZE = Math.max(200, side); // нижний порог на всякий случай
 
-      canvas.style.width  = VISUAL_SIZE + 'px';
-      canvas.style.height = VISUAL_SIZE + 'px';
+  // CSS размер управляет раскладкой, но для чёткости в canvas задаём физический размер под DPR
+  canvas.style.width  = VISUAL_SIZE + 'px';
+  canvas.style.height = VISUAL_SIZE + 'px';
 
-      DPR = getEffectiveDPR();
-      canvas.width  = VISUAL_SIZE * DPR;
-      canvas.height = VISUAL_SIZE * DPR;
+  DPR = getEffectiveDPR();
+  canvas.width  = Math.round(VISUAL_SIZE * DPR);
+  canvas.height = Math.round(VISUAL_SIZE * DPR);
 
-      ctx.setTransform(1,0,0,1,0,0);
-      ctx.scale(DPR, DPR);
-      ctx.imageSmoothingEnabled = true;
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.scale(DPR, DPR);
+  ctx.imageSmoothingEnabled = true;
 
-      drawStatic();
-    }
+  drawStatic();
+}
+
 
     // Хелпер: авто-подгон шрифта + перенос до двух строк
     function fitLabelToSector(ctx, label, maxWidthPx, baseFontPx, minFontPx) {
@@ -329,17 +348,16 @@ function spin(){
     if (p < 1){
       requestAnimationFrame(frame);
     } else {
-      var current = angle % (2 * Math.PI);
-      var winAngle = (2 * Math.PI - current) % (2 * Math.PI);
-      var idx = Math.floor(winAngle / arc) % sectors;
-      var prizeLabel = prizes[idx].label;;
+      var idx = chosenIdx; // жёстко используем заранее выбранный сектор
+      var prizeLabel = prizes[idx].label;
+
 
       var memeUrl = '';
       if (prizeLabel === 'дичь от логиста' && LOGIST_MEMES.length){
         memeUrl = LOGIST_MEMES[Math.floor(Math.random()*LOGIST_MEMES.length)];
       }
 
-      var messageHTML = buildMessageHTML(prizeLabel, memeUrl);
+      var messageHTML = buildMessageHTML(prizeLabel);
       var modalText   = textForModal(prizeLabel);
 
       // модалка
@@ -414,6 +432,7 @@ function spin(){
   </script>
 </body>
 </html>
+
 
 
 
