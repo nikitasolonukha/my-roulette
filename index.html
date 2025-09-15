@@ -332,7 +332,7 @@ function spin(){
 
   // выбор сектора по весам + целевая остановка
   var chosenIdx = pickIndexByWeight(prizes);
-  var stopAngle = chosenIdx * arc + arc/2;
+  var stopAngle = (2*Math.PI - (chosenIdx*arc + arc/2)) % (2*Math.PI);
   var total = (Math.random()*5 + 8)*2*Math.PI + stopAngle;
   var start = null, duration = 6000;
 
@@ -432,6 +432,7 @@ function spin(){
   </script>
 </body>
 </html>
+
 
 
 
