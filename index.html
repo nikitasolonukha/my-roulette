@@ -350,13 +350,10 @@ function spin(){
     } else {
       var idx = chosenIdx; // жёстко используем заранее выбранный сектор
       var prizeLabel = prizes[idx].label;
-
-
       var memeUrl = '';
       if (prizeLabel === 'дичь от логиста' && LOGIST_MEMES.length){
         memeUrl = LOGIST_MEMES[Math.floor(Math.random()*LOGIST_MEMES.length)];
       }
-
       var messageHTML = buildMessageHTML(prizeLabel);
       var modalText   = textForModal(prizeLabel);
 
@@ -432,6 +429,7 @@ function spin(){
   </script>
 </body>
 </html>
+
 
 
 
