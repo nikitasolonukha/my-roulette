@@ -332,7 +332,16 @@ function spin(){
 
   // выбор сектора по весам + целевая остановка
   var chosenIdx = pickIndexByWeight(prizes);
-  var stopAngle = (2*Math.PI - (chosenIdx*arc + arc/2)) % (2*Math.PI);
+  // Универсальный расчёт: сам проверяет направление вращения и берёт верный угол
+  var stopAngle = (function(i){
+  // вариант А (как было)
+  const a = (2*Math.PI - (i*arc + arc/2)) % (2*Math.PI);
+  // какой индекс получится при таком угле
+  const winA = (2*Math.PI - (a % (2*Math.PI))) % (2*Math.PI);
+  const idxA = Math.floor(winA / arc) % sectors;
+
+  // если совпало — берём его, иначе используем зеркальный вариант (для противоположного направления)
+  return (idxA === i) ? a : ((i*arc + arc/2) % (2*Math.PI));})(chosenIdx);
   var total = (Math.random()*5 + 8)*2*Math.PI + stopAngle;
   var start = null, duration = 6000;
 
@@ -350,12 +359,6 @@ function spin(){
     } else {
       var idx = chosenIdx; // жёстко используем заранее выбранный сектор
       var prizeLabel = prizes[idx].label;
-      var memeUrl = '';
-      if (prizeLabel === 'дичь от логиста' && LOGIST_MEMES.length){
-        memeUrl = LOGIST_MEMES[Math.floor(Math.random()*LOGIST_MEMES.length)];
-      }
-      var messageHTML = buildMessageHTML(prizeLabel);
-      var modalText   = textForModal(prizeLabel);
 
       // модалка
       resultText.textContent = modalText;
@@ -429,6 +432,7 @@ function spin(){
   </script>
 </body>
 </html>
+
 
 
 
