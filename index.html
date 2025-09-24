@@ -96,10 +96,13 @@
 
     /* ===== Telegram SDK ===== */
     var tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
-    try{ tg && tg.ready && tg.ready(); }catch(_){}
-    var user = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user : null;
-    var TG_ID = user ? user.id : null;
-    var USERNAME = user ? user.username : null;
+  try{ 
+    tg && tg.ready && tg.ready(); 
+    tg && tg.expand && tg.expand(); // <<< добавлено: открыть сразу на весь экран
+  }catch(_){}
+  var user = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user : null;
+  var TG_ID = user ? user.id : null;
+  var USERNAME = user ? user.username : null;
 
     /* ===== Версионированный флаг «крутил» + dev/reset ===== */
     var urlParams   = new URLSearchParams(location.search);
@@ -414,6 +417,7 @@ function spin(){
   </script>
 </body>
 </html>
+
 
 
 
