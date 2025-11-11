@@ -116,17 +116,24 @@
 
     /* ===== ДАННЫЕ СЕКТОРОВ ===== */
     var prizes = [
-  { label: 'дичь от логиста',   color: '#1dd1a1', weight: 5 }, // мемы — чаще
-  { label: 'сок благодарности', color: '#ff6b6b', weight: 3 }, // 100 ₽
-  { label: 'быстрая полка',     color: '#feca57', weight: 2 }, // доставка
-  { label: 'прямой перевод',    color: '#48dbfb', weight: 1 }  // 300 ₽ — реже всего
-];
+      { label: 'дичь от логиста',            color: '#1dd1a1', weight: 45.45 }, // мемы — чаще всего
+      { label: 'сок благодарности',          color: '#ff6b6b', weight: 27.27 }, // 100 ₽
+      { label: 'быстрая полка',              color: '#feca57', weight: 18.18 }, // приоритет на доставку
+      { label: 'прямой перевод',             color: '#48dbfb', weight: 5 },     // 300 ₽
+      { label: 'скидка на доставку -10%',    color: '#9b59b6', weight: 10 },    // скидка на следующую доставку
+      { label: 'сертификат Ozon',            color: '#6366f1', weight: 1 },     // минимальная вероятность
+      { label: 'страховка на отправку',      color: '#2ecc71', weight: 30 },    // бесплатная страховка
+      { label: 'второй шанс',                color: '#ff9f43', weight: 10 }     // ещё одна попытка
+    ];
     var sectors = prizes.length;
     var arc = (2*Math.PI)/sectors;
 
     /* ===== ГЕОМЕТРИЯ/ОТРИСОВКА ===== */
     var spinning = false;
     var alreadyPlayed = false;
+    var secondChanceAvailable = false;
+    var secondChanceConsumed = false;
+    var usingSecondChanceNow = false;
     var DPR = 1;
     var VISUAL_SIZE = 350; // CSS-пиксели
 
@@ -270,6 +277,14 @@
         return '🎉 <b>Поздравляем!</b> Вам выпал приз: 🚀 <b>Быстрая полка</b>\n\n📦 Приоритет на следующую доставку.\n📩 Пришлите скрин вашему логисту — он всё организует.';
       if (prizeLabel === 'прямой перевод')
         return '🎉 <b>Поздравляем!</b> Вам выпал приз: 💳 <b>Прямой перевод</b>\n\n💵 300 ₽ на карту.\n📩 Пришлите скрин вашему логисту — он всё организует.';
+      if (prizeLabel === 'скидка на доставку -10%')
+        return '🎉 <b>Поздравляем!</b> Вам выпал приз: 📉 <b>Скидка на следующую доставку</b>\n\n🔟 -10% на ближайшую доставку.\n📩 Пришлите скрин вашему логисту — он применит скидку.';
+      if (prizeLabel === 'сертификат Ozon')
+        return '🎉 <b>Поздравляем!</b> Вам выпал приз: 🛍️ <b>Подарочный сертификат Ozon</b>\n\n🎁 Логист отправит промокод после сверки.';
+      if (prizeLabel === 'страховка на отправку')
+        return '🎉 <b>Поздравляем!</b> Вам выпал приз: 🛡️ <b>Бесплатная страховка</b>\n\n📦 Защитим одну отправку за наш счёт.\n📩 Пришлите скрин вашему логисту — он всё оформит.';
+      if (prizeLabel === 'второй шанс')
+        return '✨ <b>Второй шанс!</b>\n\nКрутите колесо ещё раз.';
       if (prizeLabel === 'дичь от логиста')
         return '🎉 <b>Поздравляем!</b> Вам выпал приз: 😂 <b>Дичь от логиста</b>\n\nЛови мем! 😉';
       return '🎉 <b>Поздравляем!</b> Ваш приз: ' + prizeLabel;
@@ -283,6 +298,14 @@
         return 'Прямой перевод — 300 руб. на карту.\nПришлите скрин вашему логисту — он всё организует.';
       if (prizeLabel === 'дичь от логиста')
         return 'Дичь от логиста — лови мем 😄';
+      if (prizeLabel === 'скидка на доставку -10%')
+        return 'Скидка -10% на следующую доставку.\nСвяжитесь с логистом и покажите скрин.';
+      if (prizeLabel === 'сертификат Ozon')
+        return 'Подарочный сертификат Ozon.\nЛогист пришлёт промокод после подтверждения.';
+      if (prizeLabel === 'страховка на отправку')
+        return 'Бесплатная страховка для одной отправки.\nЛогист оформит всё по скрину.';
+      if (prizeLabel === 'второй шанс')
+        return 'Вам выпал второй шанс! Закройте окно и крутите колесо ещё раз.';
       return prizeLabel;
     }
 
@@ -309,7 +332,17 @@ function pickIndexByWeight(arr) {
 
 function spin(){
   if (spinning) return;
-  if (!DEV_MODE && alreadyPlayed) return; // «1 раз» (кроме dev)
+  if (!DEV_MODE && alreadyPlayed && !secondChanceAvailable) return; // «1 раз» (кроме dev), кроме второго шанса
+
+  usingSecondChanceNow = false;
+  if (hint) hint.textContent = '';
+
+  if (secondChanceAvailable){
+    usingSecondChanceNow = true;
+    secondChanceAvailable = false;
+    secondChanceConsumed = true;
+    try{ if(!DEV_MODE) localStorage.setItem(STORAGE_KEY, '1'); }catch(_){}
+  }
 
   spinning = true; 
   spinBtn.disabled = true;
@@ -358,9 +391,29 @@ function spin(){
       }
       modal.classList.remove('hidden');
 
-      // локальный «1 раз»
-      try{ if(!DEV_MODE) localStorage.setItem(STORAGE_KEY, '1'); }catch(_){}
-      alreadyPlayed = !DEV_MODE;
+      var isSecondChance = (prizeLabel === 'второй шанс');
+
+      if (isSecondChance && !secondChanceConsumed){
+        secondChanceAvailable = true;
+        secondChanceConsumed = false;
+        spinBtn.disabled = false;
+        alreadyPlayed = true;
+        hint.textContent = 'Вам выпал второй шанс — можно крутить ещё раз!';
+        try{ if(!DEV_MODE) localStorage.setItem(STORAGE_KEY, 'second_chance'); }catch(_){}
+      } else {
+        secondChanceAvailable = false;
+        try{ if(!DEV_MODE) localStorage.setItem(STORAGE_KEY, '1'); }catch(_){}
+        alreadyPlayed = !DEV_MODE;
+        spinBtn.disabled = alreadyPlayed;
+        if (!DEV_MODE && alreadyPlayed){
+          hint.textContent = 'Вы уже крутили колесо на этом устройстве.';
+        } else {
+          hint.textContent = '';
+        }
+      }
+
+      usingSecondChanceNow = false;
+      spinning = false;
 
       // отправка в n8n
       postPrize({
@@ -392,11 +445,20 @@ function spin(){
       // reset по параметру
       try{ if (RESET_FLAG) localStorage.removeItem(STORAGE_KEY); }catch(_){}
 
-      // «1 раз» (кроме dev)
+      // «1 раз» (кроме dev) + обработка второго шанса
       try{
-        if (!DEV_MODE && localStorage.getItem(STORAGE_KEY)==='1'){
-          alreadyPlayed = true; spinBtn.disabled = true;
-          hint.textContent = 'Вы уже крутили колесо на этом устройстве.';
+        if (!DEV_MODE){
+          var storedState = localStorage.getItem(STORAGE_KEY);
+          if (storedState === '1'){
+            alreadyPlayed = true;
+            spinBtn.disabled = true;
+            hint.textContent = 'Вы уже крутили колесо на этом устройстве.';
+          } else if (storedState === 'second_chance'){
+            alreadyPlayed = true;
+            secondChanceAvailable = true;
+            secondChanceConsumed = false;
+            hint.textContent = 'У вас есть второй шанс — воспользуйтесь им!';
+          }
         }
       }catch(_){}
 
@@ -417,7 +479,6 @@ function spin(){
   </script>
 </body>
 </html>
-
 
 
 
