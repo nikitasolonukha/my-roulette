@@ -97,6 +97,26 @@
       color:#fff;font-weight:700;cursor:pointer;box-shadow:0 6px 16px rgba(54,179,126,.35)}
     .meme{display:block;width:100%;max-height:360px;object-fit:contain;margin-top:14px;border-radius:10px}
 
+    /* Overlay для фона на весь экран */
+    #fullscreen-bg{
+      position:fixed;
+      top:0;
+      left:0;
+      right:0;
+      bottom:0;
+      width:100vw;
+      height:100vh;
+      z-index:-1;
+      background:radial-gradient(1000px 600px at 50% 0%,#34495e 0%,var(--bg1) 50%,var(--bg2) 100%);
+      background-color:var(--bg1);
+      background-attachment:fixed;
+      background-size:cover;
+      background-repeat:no-repeat;
+      margin:0;
+      padding:0;
+      pointer-events:none;
+    }
+
     /* на десктопах — компактный размер */
     @media (min-width:1024px){
       .container{
@@ -118,6 +138,7 @@
   </style>
 </head>
 <body>
+  <div id="fullscreen-bg"></div>
   <div class="container">
     <h1>Испытай свою удачу!</h1>
     <div class="wheel-wrap">
@@ -160,31 +181,64 @@
     
     // Функция для установки полного размера экрана
     function setFullScreenSize() {
-      if (tg && tg.viewportHeight) {
-        document.documentElement.style.height = tg.viewportHeight + 'px';
-        document.body.style.height = tg.viewportHeight + 'px';
-      } else {
-        // Fallback на window размеры
-        var vh = window.innerHeight || document.documentElement.clientHeight || window.screen.height;
-        document.documentElement.style.height = vh + 'px';
-        document.body.style.height = vh + 'px';
+      var bgOverlay = document.getElementById('fullscreen-bg');
+      var height, width;
+      
+      // Используем viewportStableHeight для стабильной высоты (рекомендуется в документации)
+      if (tg) {
+        if (tg.viewportStableHeight) {
+          height = tg.viewportStableHeight;
+        } else if (tg.viewportHeight) {
+          height = tg.viewportHeight;
+        }
+        if (tg.viewportWidth) {
+          width = tg.viewportWidth;
+        }
+      }
+      
+      // Fallback на window размеры
+      if (!height) {
+        height = window.innerHeight || document.documentElement.clientHeight || window.screen.height;
+      }
+      if (!width) {
+        width = window.innerWidth || document.documentElement.clientWidth || window.screen.width;
+      }
+      
+      // Устанавливаем размеры для html и body
+      document.documentElement.style.height = height + 'px';
+      document.body.style.height = height + 'px';
+      
+      // Устанавливаем размеры для overlay фона
+      if (bgOverlay) {
+        bgOverlay.style.height = height + 'px';
+        bgOverlay.style.width = width + 'px';
+        bgOverlay.style.top = '0';
+        bgOverlay.style.left = '0';
+        bgOverlay.style.right = '0';
+        bgOverlay.style.bottom = '0';
       }
     }
     
   try{ 
     if (tg) {
       tg.ready && tg.ready();
-      // Полноэкранный режим (Mini Apps 2.0) - использует весь экран
-      tg.expand && tg.expand();
-      // Подтверждение при закрытии приложения (отключает swipe to dismiss)
-      tg.enableClosingConfirmation && tg.enableClosingConfirmation();
-      // Настройка цветов для единого стиля - header и фон одного цвета
-      // Кнопка закрытия (крестик) показывается автоматически в header'е
+      
+      // Сначала устанавливаем цвета (до expand для лучшей совместимости)
       tg.setHeaderColor && tg.setHeaderColor('#2c3e50');
       tg.setBackgroundColor && tg.setBackgroundColor('#2c3e50');
       
+      // Полноэкранный режим (Mini Apps 2.0) - использует весь экран
+      // Важно: expand() должен вызываться после установки цветов
+      tg.expand && tg.expand();
+      
+      // Подтверждение при закрытии приложения (отключает swipe to dismiss)
+      tg.enableClosingConfirmation && tg.enableClosingConfirmation();
+      
       // Устанавливаем размеры для полного покрытия экрана
-      setFullScreenSize();
+      // Используем небольшую задержку после expand для корректной работы
+      setTimeout(function(){
+        setFullScreenSize();
+      }, 100);
       
       // Обновляем размеры при изменении viewport
       if (tg.onEvent) {
@@ -192,6 +246,11 @@
           setTimeout(setFullScreenSize, 50);
         });
       }
+      
+      // Дополнительно обновляем размеры после полной загрузки
+      window.addEventListener('load', function(){
+        setTimeout(setFullScreenSize, 200);
+      });
     } else {
       // Если не в Telegram, все равно устанавливаем размеры
       setFullScreenSize();
