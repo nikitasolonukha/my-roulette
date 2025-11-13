@@ -147,6 +147,23 @@
   </div>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
+    /* ===== НАСТРОЙКА ДЛЯ MAIN APP ===== */
+    /* 
+     * Этот файл настроен для работы с Main App в Telegram
+     * 
+     * Main App можно открыть тремя способами:
+     * 1. Кнопка в профиле бота (нажмите на имя бота вверху чата)
+     * 2. Кнопка в меню бота (три линии внизу экрана)
+     * 3. Кнопка в клавиатуре бота (web_app кнопка с URL GitHub Pages)
+     * 
+     * Настройка в BotFather:
+     * - Bot Settings → Mini Apps → Main App
+     * - Web App URL: https://nikitasolonukha.github.io/my-roulette/index.html
+     * 
+     * Все способы открытия должны работать в полноэкранном режиме
+     */
+    
+    /* ===== НАСТРОЙКА ===== */
     var WEBHOOK_URL = 'https://solonflowai.ru/webhook/roulette_prize';
     var LOGIST_MEMES = [
       "https://raw.githubusercontent.com/nikitasolonukha/my-roulette/main/%D0%BC%D0%B5%D0%BC%D1%8B%20%D1%80%D1%83%D0%BB%D0%B5%D1%82%D0%BA%D0%B0/1%20%D0%BC%D0%B5%D0%BC.PNG",
@@ -155,7 +172,10 @@
       "https://raw.githubusercontent.com/nikitasolonukha/my-roulette/main/%D0%BC%D0%B5%D0%BC%D1%8B%20%D1%80%D1%83%D0%BB%D0%B5%D1%82%D0%BA%D0%B0/4%20%D0%BC%D0%B5%D0%BC.PNG",
       "https://raw.githubusercontent.com/nikitasolonukha/my-roulette/main/%D0%BC%D0%B5%D0%BC%D1%8B%20%D1%80%D1%83%D0%BB%D0%B5%D1%82%D0%BA%D0%B0/5%20%D0%BC%D0%B5%D0%BC.PNG"
     ];
+    /* ===== Telegram SDK ===== */
     var tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
+    
+    /* ===== Функция для установки полного размера экрана ===== */
     function setFullScreenSize() {
       var bgOverlay = document.getElementById('fullscreen-bg');
       var screenHeight = window.screen.height;
@@ -163,6 +183,7 @@
       var tgHeight = null;
       var tgWidth = null;
       if (tg) {
+        // Используем viewportStableHeight для стабильной высоты (рекомендуется)
         tgHeight = tg.viewportStableHeight || tg.viewportHeight;
         tgWidth = tg.viewportWidth;
       }
@@ -192,31 +213,58 @@
         bgOverlay.style.setProperty('bottom', '0', 'important');
       }
     }
+    
+    /* ===== Инициализация Telegram WebApp для Main App ===== */
+    /* 
+     * Main App можно открыть тремя способами:
+     * 1. Кнопка в профиле бота (нажмите на имя бота)
+     * 2. Кнопка в меню (три линии внизу)
+     * 3. Кнопка в клавиатуре бота (web_app кнопка)
+     * 
+     * Все способы должны открывать приложение в полноэкранном режиме
+     */
   try{ 
     if (tg) {
+      // 1. Инициализация WebApp
       tg.ready && tg.ready();
+      
+      // 2. Установка цветов для единого стиля (до expand)
       tg.setHeaderColor && tg.setHeaderColor('#2c3e50');
       tg.setBackgroundColor && tg.setBackgroundColor('#2c3e50');
+      
+      // 3. Включаем подтверждение закрытия (отключает swipe to dismiss)
       tg.enableClosingConfirmation && tg.enableClosingConfirmation();
+      
+      // 4. Расширяем на весь экран (полноэкранный режим Mini Apps 2.0)
+      // Это должно открыть приложение вплоть до Dynamic Island на iPhone
+      // Кнопка "Закрыть" автоматически заменится на крестик
       tg.expand && tg.expand();
+      
+      // 5. Устанавливаем размеры для полного покрытия экрана
       setFullScreenSize();
       setTimeout(setFullScreenSize, 50);
       setTimeout(setFullScreenSize, 100);
       setTimeout(setFullScreenSize, 300);
       setTimeout(setFullScreenSize, 500);
+      
+      // 6. Обработка изменения viewport
       if (tg.onEvent) {
         tg.onEvent('viewportChanged', function(){
           setTimeout(setFullScreenSize, 50);
         });
       }
+      
+      // 7. Дополнительная обработка после загрузки
       window.addEventListener('load', function(){
         setTimeout(setFullScreenSize, 100);
         setTimeout(setFullScreenSize, 300);
       });
     } else {
+      // Если не в Telegram, все равно устанавливаем размеры
       setFullScreenSize();
     }
   }catch(_){
+    // Fallback если что-то пошло не так
     setFullScreenSize();
   }
   var user = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user : null;
