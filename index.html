@@ -6,24 +6,21 @@
   <title>Колесо Фортуны</title>
   <style>
     :root{--bg1:#2c3e50;--bg2:#223043;--btn:#4c86ff;--btnText:#fff}
-    *{box-sizing:border-box} 
-    html,body{
-      height:100%;
-      margin:0;
-      padding:0;
-      overflow:hidden;
-      /* Фон занимает весь экран, включая safe area */
-      min-height:100vh;
-      min-height:-webkit-fill-available;
-    }
+    *{box-sizing:border-box;margin:0;padding:0}
     html{
       margin:0;
       padding:0;
       width:100%;
       height:100%;
+      height:100vh;
+      height:-webkit-fill-available;
+      overflow:hidden;
       /* Фон на html, чтобы занимал весь экран включая safe area */
       background:radial-gradient(1000px 600px at 50% 0%,#34495e 0%,var(--bg1) 50%,var(--bg2) 100%);
       background-color:var(--bg1);
+      background-attachment:fixed;
+      background-size:cover;
+      background-repeat:no-repeat;
     }
     body{
       margin:0;
@@ -38,17 +35,19 @@
       left:0;
       right:0;
       bottom:0;
-      width:100%;
+      width:100vw;
+      height:100vh;
       height:100%;
+      min-height:100vh;
+      min-height:-webkit-fill-available;
+      overflow:hidden;
       /* Единый фон на весь экран, включая область за статус-баром и Dynamic Island */
       background:radial-gradient(1000px 600px at 50% 0%,#34495e 0%,var(--bg1) 50%,var(--bg2) 100%);
       background-color:var(--bg1);
       background-attachment:fixed;
       background-size:cover;
-      /* Без padding-top - фон проходит за статус-бар */
-      padding-bottom:env(safe-area-inset-bottom, 0px);
-      padding-left:env(safe-area-inset-left, 0px);
-      padding-right:env(safe-area-inset-right, 0px);
+      background-repeat:no-repeat;
+      /* Без padding - фон проходит за весь экран включая статус-бар */
     }
     .container{
       text-align:center;
@@ -158,6 +157,20 @@
 
     /* ===== Telegram SDK ===== */
     var tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
+    
+    // Функция для установки полного размера экрана
+    function setFullScreenSize() {
+      if (tg && tg.viewportHeight) {
+        document.documentElement.style.height = tg.viewportHeight + 'px';
+        document.body.style.height = tg.viewportHeight + 'px';
+      } else {
+        // Fallback на window размеры
+        var vh = window.innerHeight || document.documentElement.clientHeight || window.screen.height;
+        document.documentElement.style.height = vh + 'px';
+        document.body.style.height = vh + 'px';
+      }
+    }
+    
   try{ 
     if (tg) {
       tg.ready && tg.ready();
@@ -169,10 +182,24 @@
       // Кнопка закрытия (крестик) показывается автоматически в header'е
       tg.setHeaderColor && tg.setHeaderColor('#2c3e50');
       tg.setBackgroundColor && tg.setBackgroundColor('#2c3e50');
-      // Отключаем возможность закрытия свайпом - только через кнопку
-      // enableClosingConfirmation уже делает это, но убедимся что это работает
+      
+      // Устанавливаем размеры для полного покрытия экрана
+      setFullScreenSize();
+      
+      // Обновляем размеры при изменении viewport
+      if (tg.onEvent) {
+        tg.onEvent('viewportChanged', function(){
+          setTimeout(setFullScreenSize, 50);
+        });
+      }
+    } else {
+      // Если не в Telegram, все равно устанавливаем размеры
+      setFullScreenSize();
     }
-  }catch(_){}
+  }catch(_){
+    // Fallback если что-то пошло не так
+    setFullScreenSize();
+  }
   var user = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user : null;
   var TG_ID = user ? user.id : null;
   var USERNAME = user ? user.username : null;
@@ -551,12 +578,21 @@ function spin(){
         }
       }catch(_){}
 
+      // Устанавливаем полный размер экрана при инициализации
+      setFullScreenSize();
+      
       resizeCanvas();
-      window.addEventListener('resize', resizeCanvas);
+      window.addEventListener('resize', function(){
+        setFullScreenSize();
+        resizeCanvas();
+      });
       // Обработка изменения viewport в Telegram WebApp (для полноэкранного режима)
       if (tg && tg.onEvent) {
         tg.onEvent('viewportChanged', function(){
-          setTimeout(resizeCanvas, 100);
+          setTimeout(function(){
+            setFullScreenSize();
+            resizeCanvas();
+          }, 100);
         });
       }
       spinBtn.addEventListener('click', spin);
