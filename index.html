@@ -6,12 +6,15 @@
   <title>Колесо Фортуны</title>
   <style>
     :root{--bg1:#2c3e50;--bg2:#223043;--btn:#4c86ff;--btnText:#fff}
-    *{box-sizing:border-box} html,body{height:100%;margin:0;padding:0}
+    *{box-sizing:border-box} html,body{height:100%;margin:0;padding:0;overflow:hidden}
     body{
       margin:0;padding:0;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial;
       display:flex;align-items:center;justify-content:center;
+      /* Единый фон на весь экран, включая область под header'ом Telegram */
       background:radial-gradient(1000px 600px at 50% 0%,#34495e 0%,var(--bg1) 50%,var(--bg2) 100%);
-      /* Без отступов сверху - контент занимает весь экран */
+      background-color:var(--bg1);
+      background-attachment:fixed;
+      /* Учет safe area только снизу и по бокам */
       padding-bottom:env(safe-area-inset-bottom, 0px);
       padding-left:env(safe-area-inset-left, 0px);
       padding-right:env(safe-area-inset-right, 0px);
@@ -25,7 +28,7 @@
       flex-direction:column;
       justify-content:center;
       align-items:center;
-      /* Без отступа сверху - контент начинается сразу */
+      /* Контент центрируется в доступной области под header'ом */
       padding-top:0;
     }
     h1{margin:0 0 18px;font-weight:800;letter-spacing:.2px}
@@ -129,7 +132,9 @@
       tg.ready && tg.ready();
       // Полноэкранный режим (Mini Apps 2.0) - использует весь экран
       tg.expand && tg.expand();
-      // Настройка цветов для лучшей интеграции с темой приложения
+      // Подтверждение при закрытии приложения
+      tg.enableClosingConfirmation && tg.enableClosingConfirmation();
+      // Настройка цветов для единого стиля - header и фон одного цвета
       tg.setHeaderColor && tg.setHeaderColor('#2c3e50');
       tg.setBackgroundColor && tg.setBackgroundColor('#2c3e50');
     }
