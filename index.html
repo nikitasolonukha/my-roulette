@@ -15,7 +15,6 @@
       height:100vh;
       height:-webkit-fill-available;
       overflow:hidden;
-      /* Фон на html, чтобы занимал весь экран включая safe area */
       background:radial-gradient(1000px 600px at 50% 0%,#34495e 0%,var(--bg1) 50%,var(--bg2) 100%);
       background-color:var(--bg1);
       background-attachment:fixed;
@@ -41,13 +40,11 @@
       min-height:100vh;
       min-height:-webkit-fill-available;
       overflow:hidden;
-      /* Единый фон на весь экран, включая область за статус-баром и Dynamic Island */
       background:radial-gradient(1000px 600px at 50% 0%,#34495e 0%,var(--bg1) 50%,var(--bg2) 100%);
       background-color:var(--bg1);
       background-attachment:fixed;
       background-size:cover;
       background-repeat:no-repeat;
-      /* Без padding - фон проходит за весь экран включая статус-бар */
     }
     .container{
       text-align:center;
@@ -58,21 +55,16 @@
       flex-direction:column;
       justify-content:center;
       align-items:center;
-      /* Контент центрируется в доступной области под header'ом */
       padding-top:0;
     }
     h1{margin:0 0 18px;font-weight:800;letter-spacing:.2px}
-
     .wheel-wrap{position:relative;margin:0 auto;flex-shrink:0}
     canvas{display:block;margin:0 auto;background:transparent}
-
-    /* единственная стрелка */
     #pointer{
       position:absolute;top:50%;right:-6px;transform:translateY(-50%);
       width:0;height:0;border-top:12px solid transparent;border-bottom:12px solid transparent;
       border-left:26px solid #ff3b30;filter:drop-shadow(0 2px 2px rgba(0,0,0,.4));
     }
-
     #spin-btn{
       margin-top:22px;padding:14px 28px;font-size:16px;font-weight:700;cursor:pointer;
       border:none;border-radius:12px;background:var(--btn);color:var(--btnText);
@@ -83,8 +75,6 @@
     #spin-btn:active{transform:translateY(1px)}
     #spin-btn:disabled{background:#8a8a8a;cursor:not-allowed;box-shadow:none}
     .hint{opacity:.85;font-size:13px;margin:10px 0 0}
-
-    /* модалка результата */
     .modal{position:fixed;inset:0;background:rgba(0,0,0,.55);
       display:flex;align-items:center;justify-content:center;padding:16px}
     .hidden{display:none}
@@ -96,28 +86,27 @@
     .modal-btn{margin-top:16px;padding:12px 18px;border:none;border-radius:10px;background:#36b37e;
       color:#fff;font-weight:700;cursor:pointer;box-shadow:0 6px 16px rgba(54,179,126,.35)}
     .meme{display:block;width:100%;max-height:360px;object-fit:contain;margin-top:14px;border-radius:10px}
-
-    /* Overlay для фона на весь экран */
     #fullscreen-bg{
-      position:fixed;
-      top:0;
-      left:0;
-      right:0;
-      bottom:0;
-      width:100vw;
-      height:100vh;
-      z-index:-1;
-      background:radial-gradient(1000px 600px at 50% 0%,#34495e 0%,var(--bg1) 50%,var(--bg2) 100%);
-      background-color:var(--bg1);
-      background-attachment:fixed;
-      background-size:cover;
-      background-repeat:no-repeat;
-      margin:0;
-      padding:0;
-      pointer-events:none;
+      position:fixed !important;
+      top:0 !important;
+      left:0 !important;
+      right:0 !important;
+      bottom:0 !important;
+      width:100vw !important;
+      height:100vh !important;
+      min-height:100vh !important;
+      min-height:-webkit-fill-available !important;
+      z-index:-999 !important;
+      background:radial-gradient(1000px 600px at 50% 0%,#34495e 0%,var(--bg1) 50%,var(--bg2) 100%) !important;
+      background-color:var(--bg1) !important;
+      background-attachment:fixed !important;
+      background-size:cover !important;
+      background-repeat:no-repeat !important;
+      margin:0 !important;
+      padding:0 !important;
+      pointer-events:none !important;
+      overflow:hidden !important;
     }
-
-    /* на десктопах — компактный размер */
     @media (min-width:1024px){
       .container{
         width:auto;
@@ -148,8 +137,6 @@
     <button id="spin-btn">Крутить!</button>
     <p id="hint" class="hint"></p>
   </div>
-
-  <!-- модалка результата -->
   <div id="result-modal" class="modal hidden">
     <div class="modal-card">
       <div class="modal-title">Ваш приз</div>
@@ -158,188 +145,139 @@
       <button id="close-modal" class="modal-btn">Понятно</button>
     </div>
   </div>
-
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
-    /* ===== НАСТРОЙКА ===== */
-    // прод-вебхук n8n — поменяй на свой при необходимости
     var WEBHOOK_URL = 'https://solonflowai.ru/webhook/roulette_prize';
-
-    // мемы для «дичь от логиста» (по желанию добавь ссылки)
     var LOGIST_MEMES = [
-      // 'https://example.com/meme1.jpg',
-      // 'https://example.com/meme2.png',
-"https://github.com/nikitasolonukha/my-roulette/blob/main/%D0%BC%D0%B5%D0%BC%D1%8B%20%D1%80%D1%83%D0%BB%D0%B5%D1%82%D0%BA%D0%B0/1%20%D0%BC%D0%B5%D0%BC.PNG?raw=true",
-"https://github.com/nikitasolonukha/my-roulette/blob/main/%D0%BC%D0%B5%D0%BC%D1%8B%20%D1%80%D1%83%D0%BB%D0%B5%D1%82%D0%BA%D0%B0/2%20%D0%BC%D0%B5%D0%BC.PNG?raw=true",
-"https://github.com/nikitasolonukha/my-roulette/blob/main/%D0%BC%D0%B5%D0%BC%D1%8B%20%D1%80%D1%83%D0%BB%D0%B5%D1%82%D0%BA%D0%B0/3%20%D0%BC%D0%B5%D0%BC.PNG?raw=true",
-"https://github.com/nikitasolonukha/my-roulette/blob/main/%D0%BC%D0%B5%D0%BC%D1%8B%20%D1%80%D1%83%D0%BB%D0%B5%D1%82%D0%BA%D0%B0/4%20%D0%BC%D0%B5%D0%BC.PNG?raw=true",
-"https://github.com/nikitasolonukha/my-roulette/blob/main/%D0%BC%D0%B5%D0%BC%D1%8B%20%D1%80%D1%83%D0%BB%D0%B5%D1%82%D0%BA%D0%B0/5%20%D0%BC%D0%B5%D0%BC.PNG?raw=true"
+      "https://raw.githubusercontent.com/nikitasolonukha/my-roulette/main/%D0%BC%D0%B5%D0%BC%D1%8B%20%D1%80%D1%83%D0%BB%D0%B5%D1%82%D0%BA%D0%B0/1%20%D0%BC%D0%B5%D0%BC.PNG",
+      "https://raw.githubusercontent.com/nikitasolonukha/my-roulette/main/%D0%BC%D0%B5%D0%BC%D1%8B%20%D1%80%D1%83%D0%BB%D0%B5%D1%82%D0%BA%D0%B0/2%20%D0%BC%D0%B5%D0%BC.PNG",
+      "https://raw.githubusercontent.com/nikitasolonukha/my-roulette/main/%D0%BC%D0%B5%D0%BC%D1%8B%20%D1%80%D1%83%D0%BB%D0%B5%D1%82%D0%BA%D0%B0/3%20%D0%BC%D0%B5%D0%BC.PNG",
+      "https://raw.githubusercontent.com/nikitasolonukha/my-roulette/main/%D0%BC%D0%B5%D0%BC%D1%8B%20%D1%80%D1%83%D0%BB%D0%B5%D1%82%D0%BA%D0%B0/4%20%D0%BC%D0%B5%D0%BC.PNG",
+      "https://raw.githubusercontent.com/nikitasolonukha/my-roulette/main/%D0%BC%D0%B5%D0%BC%D1%8B%20%D1%80%D1%83%D0%BB%D0%B5%D1%82%D0%BA%D0%B0/5%20%D0%BC%D0%B5%D0%BC.PNG"
     ];
-
-    /* ===== Telegram SDK ===== */
     var tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
-    
-    // Функция для установки полного размера экрана
     function setFullScreenSize() {
       var bgOverlay = document.getElementById('fullscreen-bg');
-      var height, width;
-      
-      // Используем viewportStableHeight для стабильной высоты (рекомендуется в документации)
+      var screenHeight = window.screen.height;
+      var screenWidth = window.screen.width;
+      var tgHeight = null;
+      var tgWidth = null;
       if (tg) {
-        if (tg.viewportStableHeight) {
-          height = tg.viewportStableHeight;
-        } else if (tg.viewportHeight) {
-          height = tg.viewportHeight;
-        }
-        if (tg.viewportWidth) {
-          width = tg.viewportWidth;
-        }
+        tgHeight = tg.viewportStableHeight || tg.viewportHeight;
+        tgWidth = tg.viewportWidth;
       }
-      
-      // Fallback на window размеры
-      if (!height) {
-        height = window.innerHeight || document.documentElement.clientHeight || window.screen.height;
-      }
-      if (!width) {
-        width = window.innerWidth || document.documentElement.clientWidth || window.screen.width;
-      }
-      
-      // Устанавливаем размеры для html и body
+      var height = Math.max(
+        screenHeight,
+        tgHeight || 0,
+        window.innerHeight || 0,
+        document.documentElement.clientHeight || 0
+      );
+      var width = Math.max(
+        screenWidth,
+        tgWidth || 0,
+        window.innerWidth || 0,
+        document.documentElement.clientWidth || 0
+      );
       document.documentElement.style.height = height + 'px';
+      document.documentElement.style.minHeight = height + 'px';
       document.body.style.height = height + 'px';
-      
-      // Устанавливаем размеры для overlay фона
+      document.body.style.minHeight = height + 'px';
       if (bgOverlay) {
-        bgOverlay.style.height = height + 'px';
-        bgOverlay.style.width = width + 'px';
-        bgOverlay.style.top = '0';
-        bgOverlay.style.left = '0';
-        bgOverlay.style.right = '0';
-        bgOverlay.style.bottom = '0';
+        bgOverlay.style.setProperty('height', height + 'px', 'important');
+        bgOverlay.style.setProperty('width', width + 'px', 'important');
+        bgOverlay.style.setProperty('min-height', height + 'px', 'important');
+        bgOverlay.style.setProperty('top', '0', 'important');
+        bgOverlay.style.setProperty('left', '0', 'important');
+        bgOverlay.style.setProperty('right', '0', 'important');
+        bgOverlay.style.setProperty('bottom', '0', 'important');
       }
     }
-    
   try{ 
     if (tg) {
       tg.ready && tg.ready();
-      
-      // Сначала устанавливаем цвета (до expand для лучшей совместимости)
       tg.setHeaderColor && tg.setHeaderColor('#2c3e50');
       tg.setBackgroundColor && tg.setBackgroundColor('#2c3e50');
-      
-      // Полноэкранный режим (Mini Apps 2.0) - использует весь экран
-      // Важно: expand() должен вызываться после установки цветов
-      tg.expand && tg.expand();
-      
-      // Подтверждение при закрытии приложения (отключает swipe to dismiss)
       tg.enableClosingConfirmation && tg.enableClosingConfirmation();
-      
-      // Устанавливаем размеры для полного покрытия экрана
-      // Используем небольшую задержку после expand для корректной работы
-      setTimeout(function(){
-        setFullScreenSize();
-      }, 100);
-      
-      // Обновляем размеры при изменении viewport
+      tg.expand && tg.expand();
+      setFullScreenSize();
+      setTimeout(setFullScreenSize, 50);
+      setTimeout(setFullScreenSize, 100);
+      setTimeout(setFullScreenSize, 300);
+      setTimeout(setFullScreenSize, 500);
       if (tg.onEvent) {
         tg.onEvent('viewportChanged', function(){
           setTimeout(setFullScreenSize, 50);
         });
       }
-      
-      // Дополнительно обновляем размеры после полной загрузки
       window.addEventListener('load', function(){
-        setTimeout(setFullScreenSize, 200);
+        setTimeout(setFullScreenSize, 100);
+        setTimeout(setFullScreenSize, 300);
       });
     } else {
-      // Если не в Telegram, все равно устанавливаем размеры
       setFullScreenSize();
     }
   }catch(_){
-    // Fallback если что-то пошло не так
     setFullScreenSize();
   }
   var user = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user : null;
   var TG_ID = user ? user.id : null;
   var USERNAME = user ? user.username : null;
-
-    /* ===== Версионированный флаг «крутил» + dev/reset ===== */
     var urlParams   = new URLSearchParams(location.search);
     var APP_VERSION = urlParams.get('v') || '1';
     var DEV_MODE    = urlParams.get('dev') === '1';
     var RESET_FLAG  = urlParams.get('reset') === '1';
     var STORAGE_KEY = 'roulette_played_v' + APP_VERSION;
-
-    /* ===== DOM ===== */
     var canvas, ctx, spinBtn, hint, modal, resultText, memeImg, closeModal;
-
-    /* ===== ДАННЫЕ СЕКТОРОВ ===== */
     var prizes = [
-      { label: 'дичь от логиста',            color: '#1dd1a1', weight: 45.45 }, // мемы — чаще всего
-      { label: 'сок благодарности',          color: '#ff6b6b', weight: 27.27 }, // 100 ₽
-      { label: 'быстрая полка',              color: '#feca57', weight: 18.18 }, // приоритет на доставку
-      { label: 'прямой перевод',             color: '#48dbfb', weight: 5 },     // 300 ₽
-      { label: 'скидка на доставку -10%',    color: '#9b59b6', weight: 10 },    // скидка на следующую доставку
-      { label: 'сертификат Ozon',            color: '#6366f1', weight: 1 },     // минимальная вероятность
-      { label: 'страховка на отправку',      color: '#2ecc71', weight: 30 },    // бесплатная страховка
-      { label: 'второй шанс',                color: '#ff9f43', weight: 10 }     // ещё одна попытка
+      { label: 'дичь от логиста',            color: '#1dd1a1', weight: 45.45 },
+      { label: 'сок благодарности',          color: '#ff6b6b', weight: 27.27 },
+      { label: 'быстрая полка',              color: '#feca57', weight: 18.18 },
+      { label: 'прямой перевод',             color: '#48dbfb', weight: 5 },
+      { label: 'скидка на доставку -10%',    color: '#9b59b6', weight: 10 },
+      { label: 'сертификат Ozon',            color: '#6366f1', weight: 1 },
+      { label: 'страховка на отправку',      color: '#2ecc71', weight: 30 },
+      { label: 'второй шанс',                color: '#ff9f43', weight: 10 }
     ];
     var sectors = prizes.length;
     var arc = (2*Math.PI)/sectors;
-
-    /* ===== ГЕОМЕТРИЯ/ОТРИСОВКА ===== */
     var spinning = false;
     var alreadyPlayed = false;
     var secondChanceAvailable = false;
     var secondChanceConsumed = false;
     var usingSecondChanceNow = false;
     var DPR = 1;
-    var VISUAL_SIZE = 350; // CSS-пиксели
-
+    var VISUAL_SIZE = 350;
     function getEffectiveDPR(){
       var dv = (window.devicePixelRatio || 1);
       var vs = (window.visualViewport && window.visualViewport.scale) ? window.visualViewport.scale : 1;
-      return Math.max(1, Math.round(dv * vs)); // целое => чётче
+      return Math.max(1, Math.round(dv * vs));
     }
-
     function resizeCanvas(){
-      // на мобильных — почти весь экран, на десктопах — компактно
       var isMobile = window.innerWidth < 1024;
       var w, h, side;
-      
       if (isMobile) {
-        // мобильные: используем 90% от минимальной стороны экрана
         w = Math.floor(window.innerWidth  * 0.90);
-        h = Math.floor(window.innerHeight * 0.75); // больше места для колеса
+        h = Math.floor(window.innerHeight * 0.75);
         side = Math.min(w, h);
       } else {
-        // десктоп: фиксированный размер
         side = 440;
       }
-      
       VISUAL_SIZE = side;
-
       var wheelWrap = document.querySelector('.wheel-wrap');
       if (wheelWrap) {
         wheelWrap.style.width = VISUAL_SIZE + 'px';
         wheelWrap.style.height = VISUAL_SIZE + 'px';
       }
-
       canvas.style.width  = VISUAL_SIZE + 'px';
       canvas.style.height = VISUAL_SIZE + 'px';
-
       DPR = getEffectiveDPR();
       canvas.width  = VISUAL_SIZE * DPR;
       canvas.height = VISUAL_SIZE * DPR;
-
       ctx.setTransform(1,0,0,1,0,0);
       ctx.scale(DPR, DPR);
       ctx.imageSmoothingEnabled = true;
-
       drawStatic();
     }
-
-    // Хелпер: авто-подгон шрифта + перенос до двух строк
     function fitLabelToSector(ctx, label, maxWidthPx, baseFontPx, minFontPx) {
       let fontPx = baseFontPx;
       while (fontPx >= minFontPx) {
@@ -351,7 +289,6 @@
       }
       const words = label.split(' ');
       if (words.length === 1) return { lines: [label], fontPx: minFontPx };
-
       for (let cut = 1; cut < words.length; cut++) {
         const l1 = words.slice(0, cut).join(' ');
         const l2 = words.slice(cut).join(' ');
@@ -366,61 +303,43 @@
       }
       return { lines: [label], fontPx: minFontPx };
     }
-
     function drawWheel(angle){
       var W = VISUAL_SIZE, H = VISUAL_SIZE;
-
-      // «прищёлкнутые» координаты для чётких линий
       var cx = Math.floor(W/2) + 0.5;
       var cy = Math.floor(H/2) + 0.5;
       var r  = Math.floor(Math.min(cx, cy) - 8) + 0.5;
-
       ctx.save();
       ctx.translate(cx, cy);
       ctx.rotate(angle || 0);
       ctx.translate(-cx, -cy);
-
       for (var i=0;i<sectors;i++){
         var a0 = i*arc, a1 = a0 + arc;
-
-        // сектор
         ctx.beginPath();
         ctx.moveTo(cx, cy);
         ctx.fillStyle = prizes[i].color;
         ctx.arc(cx, cy, r, a0, a1);
         ctx.closePath();
         ctx.fill();
-
-        // граница сектора
         ctx.strokeStyle = 'rgba(0,0,0,.15)';
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.arc(cx, cy, r, a0, a1);
         ctx.stroke();
-
-        // подпись — крупная, читаемая, но не вылезает
         ctx.save();
         ctx.translate(cx, cy);
         ctx.rotate(a0 + arc/2);
         ctx.fillStyle = '#fff';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-
-        // динамика от радиуса
         const baseFontPx = Math.round(Math.min(22, Math.max(13, r * 0.065)));
         const minFontPx  = Math.max(11, baseFontPx - 5);
-
-        const maxTextWidth = r * 0.70; // безопасная ширина
-        const tx           = r * 0.55; // чуть глубже внутрь сектора
-
+        const maxTextWidth = r * 0.70;
+        const tx           = r * 0.55;
         const fitted = fitLabelToSector(ctx, prizes[i].label, maxTextWidth, baseFontPx, minFontPx);
         ctx.font = `600 ${fitted.fontPx}px -apple-system, Segoe UI, Roboto, Arial`;
-
-        // лёгкая тень: на мобилках слабее
         var isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
         ctx.shadowColor = isMobile ? 'rgba(0,0,0,.2)' : 'rgba(0,0,0,.28)';
         ctx.shadowBlur  = isMobile ? 0.6 : 1.1;
-
         if (fitted.lines.length === 1){
           ctx.fillText(fitted.lines[0], tx, 0);
         } else {
@@ -431,20 +350,14 @@
         ctx.restore();
       }
       ctx.restore();
-
-      // белый ободок
       ctx.lineWidth = 6;
       ctx.strokeStyle = 'rgba(255,255,255,.9)';
       ctx.beginPath(); ctx.arc(cx, cy, r+2, 0, Math.PI*2); ctx.stroke();
-
-      // центр
       ctx.fillStyle = '#e5ecff';
       ctx.beginPath(); ctx.arc(cx, cy, 14, 0, Math.PI*2); ctx.fill();
       ctx.strokeStyle = 'rgba(0,0,0,.12)'; ctx.lineWidth = 1; ctx.stroke();
     }
     function drawStatic(){ ctx.clearRect(0,0,canvas.width,canvas.height); drawWheel(0); }
-
-    /* ===== ТЕКСТЫ ===== */
     function buildMessageHTML(prizeLabel){
       if (prizeLabel === 'сок благодарности')
         return '🎉 <b>Поздравляем!</b> Вам выпал приз: 🧃 <b>Сок благодарности</b>\n\n💸 100 ₽ на карту.\n📩 Пришлите скрин вашему логисту — он всё организует.';
@@ -483,8 +396,6 @@
         return 'Вам выпал второй шанс! Закройте окно и крутите колесо ещё раз.';
       return prizeLabel;
     }
-
-    /* ===== ВЕБХУК ===== */
     function postPrize(payload){
       return fetch(WEBHOOK_URL, {
         method:'POST',
@@ -493,8 +404,6 @@
         body: JSON.stringify(payload)
       }).catch(()=>{});
     }
-
-/* ===== СПИН (веса) ===== */
 function pickIndexByWeight(arr) {
   const total = arr.reduce((s, x) => s + (x.weight || 1), 0);
   let r = Math.random() * total;
@@ -504,39 +413,30 @@ function pickIndexByWeight(arr) {
   }
   return arr.length - 1;
 }
-
 function spin(){
   if (spinning) return;
-  if (!DEV_MODE && alreadyPlayed && !secondChanceAvailable) return; // «1 раз» (кроме dev), кроме второго шанса
-
+  if (!DEV_MODE && alreadyPlayed && !secondChanceAvailable) return;
   usingSecondChanceNow = false;
   if (hint) hint.textContent = '';
-
   if (secondChanceAvailable){
     usingSecondChanceNow = true;
     secondChanceAvailable = false;
     secondChanceConsumed = true;
     try{ if(!DEV_MODE) localStorage.setItem(STORAGE_KEY, '1'); }catch(_){}
   }
-
   spinning = true; 
   spinBtn.disabled = true;
-
-  // выбор сектора по весам + целевая остановка
   var chosenIdx = pickIndexByWeight(prizes);
   var stopAngle = chosenIdx * arc + arc/2;
   var total = (Math.random()*5 + 8)*2*Math.PI + stopAngle;
   var start = null, duration = 6000;
-
   function frame(ts){
     if(!start) start = ts;
     var p = Math.min(1, (ts - start)/duration);
     var ease = 1 - Math.pow(1 - p, 4);
     var angle = ease * total;
-
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     drawWheel(angle);
-
     if (p < 1){
       requestAnimationFrame(frame);
     } else {
@@ -544,16 +444,12 @@ function spin(){
       var winAngle = (2 * Math.PI - current) % (2 * Math.PI);
       var idx = Math.floor(winAngle / arc) % sectors;
       var prizeLabel = prizes[idx].label;;
-
       var memeUrl = '';
       if (prizeLabel === 'дичь от логиста' && LOGIST_MEMES.length){
         memeUrl = LOGIST_MEMES[Math.floor(Math.random()*LOGIST_MEMES.length)];
       }
-
       var messageHTML = buildMessageHTML(prizeLabel, memeUrl);
       var modalText   = textForModal(prizeLabel);
-
-      // модалка
       resultText.textContent = modalText;
       if (memeUrl){
         memeImg.src = memeUrl; 
@@ -565,9 +461,7 @@ function spin(){
         memeImg.style.display = 'none';
       }
       modal.classList.remove('hidden');
-
       var isSecondChance = (prizeLabel === 'второй шанс');
-
       if (isSecondChance && !secondChanceConsumed){
         secondChanceAvailable = true;
         secondChanceConsumed = false;
@@ -586,11 +480,8 @@ function spin(){
           hint.textContent = '';
         }
       }
-
       usingSecondChanceNow = false;
       spinning = false;
-
-      // отправка в n8n
       postPrize({
         tg_id: TG_ID,
         username: USERNAME,
@@ -604,10 +495,7 @@ function spin(){
   }
   requestAnimationFrame(frame);
 }
-
-    /* ===== INIT ===== */
     function init(){
-      // DOM
       canvas     = document.getElementById('roulette');
       ctx        = canvas.getContext('2d');
       spinBtn    = document.getElementById('spin-btn');
@@ -616,11 +504,7 @@ function spin(){
       resultText = document.getElementById('result-text');
       memeImg    = document.getElementById('meme');
       closeModal = document.getElementById('close-modal');
-
-      // reset по параметру
       try{ if (RESET_FLAG) localStorage.removeItem(STORAGE_KEY); }catch(_){}
-
-      // «1 раз» (кроме dev) + обработка второго шанса
       try{
         if (!DEV_MODE){
           var storedState = localStorage.getItem(STORAGE_KEY);
@@ -636,16 +520,19 @@ function spin(){
           }
         }
       }catch(_){}
-
-      // Устанавливаем полный размер экрана при инициализации
       setFullScreenSize();
-      
+      setTimeout(setFullScreenSize, 50);
+      setTimeout(setFullScreenSize, 100);
+      setTimeout(setFullScreenSize, 200);
       resizeCanvas();
       window.addEventListener('resize', function(){
         setFullScreenSize();
         resizeCanvas();
       });
-      // Обработка изменения viewport в Telegram WebApp (для полноэкранного режима)
+      window.addEventListener('orientationchange', function(){
+        setTimeout(setFullScreenSize, 100);
+        setTimeout(setFullScreenSize, 300);
+      });
       if (tg && tg.onEvent) {
         tg.onEvent('viewportChanged', function(){
           setTimeout(function(){
@@ -660,7 +547,6 @@ function spin(){
         try{ tg && tg.close && tg.close(); }catch(_){}
       });
     }
-
     if (document.readyState === 'loading'){
       document.addEventListener('DOMContentLoaded', init);
     } else {
@@ -669,9 +555,4 @@ function spin(){
   </script>
 </body>
 </html>
-
-
-
-
-
 
