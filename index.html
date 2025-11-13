@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
   <title>Колесо Фортуны</title>
   <style>
     :root{--bg1:#2c3e50;--bg2:#223043;--btn:#4c86ff;--btnText:#fff}
@@ -147,39 +147,58 @@
   </div>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
-    /* ===== НАСТРОЙКА ДЛЯ TELEGRAM MINI APP ===== */
+    /* ===== ВАЖНО: НАСТРОЙКА ДЛЯ ПОЛНОЭКРАННОГО РЕЖИМА TELEGRAM MINI APP ===== */
     /* 
      * Direct Link: https://t.me/ITL_otzivi_bot/itlotzivi
      * 
-     * НАСТРОЙКА В BOTFATHER:
-     * 1. Откройте @BotFather → /myapps
-     * 2. Найдите Direct Link: t.me/ITL_otzivi_bot/itlotzivi
-     * 3. В поле Web App URL укажите ваш GitHub Pages URL:
-     *    https://nikitasolonukha.github.io/my-roulette/index.html
-     * 4. Сохраните
+     * КРИТИЧЕСКИ ВАЖНО ДЛЯ ПОЛНОЭКРАННОГО РЕЖИМА:
      * 
-     * КОД ДЛЯ БОТА (aiogram):
-     * ---
-     * from aiogram.types import KeyboardButton, WebAppInfo, ReplyKeyboardMarkup
+     * 1. В BOTFATHER (@BotFather):
+     *    - Откройте /myapps
+     *    - Найдите или создайте Direct Link: t.me/ITL_otzivi_bot/itlotzivi
+     *    - В поле "Web App URL" укажите URL вашего HTML файла:
+     *      https://nikitasolonukha.github.io/my-roulette/index_updated.html
+     *      (или ваш собственный домен)
+     *    - Сохраните изменения
      * 
-     * def get_roulette_keyboard():
-     *     return ReplyKeyboardMarkup(
-     *         keyboard=[[KeyboardButton(
-     *             text="🎰 Крутить колесо",
-     *             web_app=WebAppInfo(url="https://t.me/ITL_otzivi_bot/itlotzivi")
-     *         )]],
-     *         resize_keyboard=True
-     *     )
+     * 2. В КОДЕ БОТА (aiogram) ИСПОЛЬЗУЙТЕ ТОЛЬКО web_app КНОПКИ:
+     *    ⚠️ НЕ используйте обычные URL-кнопки (InlineKeyboardButton с url)
+     *    ✅ Используйте KeyboardButton с web_app=WebAppInfo
      * 
-     * @dp.message(Command("start"))
-     * async def cmd_start(message: types.Message):
-     *     await message.answer(
-     *         "🎰 Добро пожаловать!\n\nНажмите кнопку ниже:",
-     *         reply_markup=get_roulette_keyboard()
-     *     )
-     * ---
+     *    from aiogram.types import KeyboardButton, WebAppInfo, ReplyKeyboardMarkup
+     *    
+     *    def get_roulette_keyboard():
+     *        return ReplyKeyboardMarkup(
+     *            keyboard=[[KeyboardButton(
+     *                text="🎰 Крутить колесо",
+     *                # ✅ ПРАВИЛЬНО: используйте Direct Link
+     *                web_app=WebAppInfo(url="https://t.me/ITL_otzivi_bot/itlotzivi")
+     *                # ИЛИ прямой URL вашего сайта:
+     *                # web_app=WebAppInfo(url="https://ваш-домен.com/index_updated.html")
+     *            )]],
+     *            resize_keyboard=True
+     *        )
+     *    
+     *    @dp.message(Command("start"))
+     *    async def cmd_start(message: types.Message):
+     *        await message.answer(
+     *            "🎰 Добро пожаловать!\n\nНажмите кнопку ниже:",
+     *            reply_markup=get_roulette_keyboard()
+     *        )
      * 
-     * ⚠️ ВАЖНО: Используйте Direct Link в коде бота для полноэкранного режима!
+     * 3. ПРОВЕРЬТЕ:
+     *    - Используете последнюю версию Telegram (обновите приложение)
+     *    - Кнопка в боте имеет тип web_app (не обычная URL-кнопка)
+     *    - В URL кнопки указан либо Direct Link, либо прямой URL вашего сайта
+     *    - HTML файл доступен по указанному URL (HTTPS обязательно)
+     * 
+     * 4. ЕСЛИ НЕ РАБОТАЕТ ПОЛНОЭКРАННЫЙ РЕЖИМ:
+     *    - Убедитесь, что используете KeyboardButton с web_app (не InlineKeyboardButton)
+     *    - Проверьте, что URL начинается с https://
+     *    - Обновите Telegram до последней версии
+     *    - Попробуйте пересоздать Direct Link в @BotFather
+     * 
+     * ⚠️ ВАЖНО: Полноэкранный режим работает только при открытии через web_app кнопку!
      */
     
     /* ===== НАСТРОЙКА ===== */
@@ -193,6 +212,14 @@
     ];
     /* ===== Telegram SDK ===== */
     var tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
+    
+    // Отладка: проверяем наличие Telegram WebApp
+    if (tg) {
+      console.log('✅ Telegram WebApp обнаружен');
+      console.log('expand доступен:', typeof tg.expand === 'function');
+    } else {
+      console.warn('⚠️ Telegram WebApp не обнаружен - возможно, открыто не в Telegram');
+    }
     
     /* ===== Функция для установки полного размера экрана ===== */
     function setFullScreenSize() {
@@ -243,67 +270,108 @@
      */
   try{ 
     if (tg) {
-      // 1. Инициализация WebApp
-      tg.ready && tg.ready();
+      // КРИТИЧЕСКИ ВАЖНО для полноэкранного режима:
+      // 1. expand() вызывается ДО ready()
+      // 2. Цвета устанавливаются ДО expand()
+      // 3. ready() вызывается ПОСЛЕ expand()
       
-      // 2. Установка цветов для единого стиля (до expand)
-      tg.setHeaderColor && tg.setHeaderColor('#2c3e50');
-      tg.setBackgroundColor && tg.setBackgroundColor('#2c3e50');
-      
-      // 3. Включаем подтверждение закрытия (отключает swipe to dismiss)
-      tg.enableClosingConfirmation && tg.enableClosingConfirmation();
-      
-      // 4. Расширяем на весь экран (полноэкранный режим Mini Apps 2.0)
-      // Множественные вызовы для гарантии
-      if (tg.expand) {
-        tg.expand();
-        // Повторные вызовы с задержками для надежности
-        setTimeout(function(){ tg.expand && tg.expand(); }, 10);
-        setTimeout(function(){ tg.expand && tg.expand(); }, 50);
-        setTimeout(function(){ tg.expand && tg.expand(); }, 100);
-        setTimeout(function(){ tg.expand && tg.expand(); }, 300);
+      // Устанавливаем цвета фона ПЕРВЫМ делом
+      try {
+        tg.setHeaderColor && tg.setHeaderColor('#2c3e50');
+        tg.setBackgroundColor && tg.setBackgroundColor('#2c3e50');
+      } catch(e) {
+        console.warn('Ошибка установки цветов:', e);
       }
       
-      // 5. Устанавливаем размеры для полного покрытия экрана
+      // КРИТИЧНО: expand() ДО ready() - это ключ к полноэкранному режиму
+      if (tg.expand) {
+        try { 
+          console.log('🚀 Вызываю tg.expand() ДО ready()');
+          tg.expand(); 
+          console.log('✅ tg.expand() вызван успешно');
+        } catch(e) { 
+          console.error('❌ Ошибка при вызове expand:', e); 
+        }
+      }
+      
+      // Теперь вызываем ready()
+      try {
+        tg.ready && tg.ready();
+      } catch(e) {
+        console.warn('Ошибка ready():', e);
+      }
+      
+      // Включаем подтверждение закрытия (отключает swipe to dismiss)
+      try {
+        tg.enableClosingConfirmation && tg.enableClosingConfirmation();
+      } catch(e) {
+        console.warn('Ошибка enableClosingConfirmation:', e);
+      }
+      
+      // Дополнительные вызовы expand() после ready() для гарантии
+      if (tg.expand) {
+        setTimeout(function(){ 
+          try { 
+            tg.expand(); 
+            console.log('✅ tg.expand() вызван после ready (50ms)');
+          } catch(e) {} 
+        }, 50);
+        setTimeout(function(){ 
+          try { 
+            tg.expand(); 
+            console.log('✅ tg.expand() вызван после ready (100ms)');
+          } catch(e) {} 
+        }, 100);
+      }
+      
+      // Устанавливаем размеры для полного покрытия экрана
       setFullScreenSize();
-      setTimeout(setFullScreenSize, 10);
       setTimeout(setFullScreenSize, 50);
       setTimeout(setFullScreenSize, 100);
-      setTimeout(setFullScreenSize, 300);
-      setTimeout(setFullScreenSize, 500);
-      setTimeout(setFullScreenSize, 1000);
+      setTimeout(setFullScreenSize, 200);
       
-      // 6. Обработка изменения viewport
+      // Обработка изменения viewport (важно для динамического изменения размера)
       if (tg.onEvent) {
         tg.onEvent('viewportChanged', function(){
+          console.log('🔄 viewportChanged событие');
           setTimeout(function(){
-            tg.expand && tg.expand();
+            if (tg.expand) {
+              try {
+                tg.expand();
+                console.log('✅ expand() после viewportChanged');
+              } catch(e) {}
+            }
             setFullScreenSize();
           }, 50);
         });
       }
       
-      // 7. Дополнительная обработка после загрузки
+      // Обработка после полной загрузки страницы
       window.addEventListener('load', function(){
         setTimeout(function(){
-          tg.expand && tg.expand();
+          if (tg.expand) {
+            try {
+              tg.expand();
+              console.log('✅ expand() после window.load');
+            } catch(e) {}
+          }
           setFullScreenSize();
         }, 100);
-        setTimeout(function(){
-          tg.expand && tg.expand();
-          setFullScreenSize();
-        }, 300);
-        setTimeout(function(){
-          tg.expand && tg.expand();
-          setFullScreenSize();
-        }, 500);
       });
       
-      // 8. Обработка события ready (если доступно)
+      // Обработка события ready (если доступно)
       if (tg.onEvent) {
         tg.onEvent('ready', function(){
-          tg.expand && tg.expand();
-          setFullScreenSize();
+          console.log('✅ Telegram WebApp ready');
+          setTimeout(function(){
+            if (tg.expand) {
+              try {
+                tg.expand();
+                console.log('✅ expand() после ready событие');
+              } catch(e) {}
+            }
+            setFullScreenSize();
+          }, 50);
         });
       }
     } else {
@@ -651,3 +719,4 @@ function spin(){
   </script>
 </body>
 </html>
+
