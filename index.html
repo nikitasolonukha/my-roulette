@@ -254,35 +254,65 @@
       tg.enableClosingConfirmation && tg.enableClosingConfirmation();
       
       // 4. Расширяем на весь экран (полноэкранный режим Mini Apps 2.0)
-      // Это должно открыть приложение вплоть до Dynamic Island на iPhone
-      // Кнопка "Закрыть" автоматически заменится на крестик
-      tg.expand && tg.expand();
+      // Множественные вызовы для гарантии
+      if (tg.expand) {
+        tg.expand();
+        // Повторные вызовы с задержками для надежности
+        setTimeout(function(){ tg.expand && tg.expand(); }, 10);
+        setTimeout(function(){ tg.expand && tg.expand(); }, 50);
+        setTimeout(function(){ tg.expand && tg.expand(); }, 100);
+        setTimeout(function(){ tg.expand && tg.expand(); }, 300);
+      }
       
       // 5. Устанавливаем размеры для полного покрытия экрана
       setFullScreenSize();
+      setTimeout(setFullScreenSize, 10);
       setTimeout(setFullScreenSize, 50);
       setTimeout(setFullScreenSize, 100);
       setTimeout(setFullScreenSize, 300);
       setTimeout(setFullScreenSize, 500);
+      setTimeout(setFullScreenSize, 1000);
       
       // 6. Обработка изменения viewport
       if (tg.onEvent) {
         tg.onEvent('viewportChanged', function(){
-          setTimeout(setFullScreenSize, 50);
+          setTimeout(function(){
+            tg.expand && tg.expand();
+            setFullScreenSize();
+          }, 50);
         });
       }
       
       // 7. Дополнительная обработка после загрузки
       window.addEventListener('load', function(){
-        setTimeout(setFullScreenSize, 100);
-        setTimeout(setFullScreenSize, 300);
+        setTimeout(function(){
+          tg.expand && tg.expand();
+          setFullScreenSize();
+        }, 100);
+        setTimeout(function(){
+          tg.expand && tg.expand();
+          setFullScreenSize();
+        }, 300);
+        setTimeout(function(){
+          tg.expand && tg.expand();
+          setFullScreenSize();
+        }, 500);
       });
+      
+      // 8. Обработка события ready (если доступно)
+      if (tg.onEvent) {
+        tg.onEvent('ready', function(){
+          tg.expand && tg.expand();
+          setFullScreenSize();
+        });
+      }
     } else {
       // Если не в Telegram, все равно устанавливаем размеры
       setFullScreenSize();
     }
-  }catch(_){
+  }catch(e){
     // Fallback если что-то пошло не так
+    console.error('Telegram WebApp error:', e);
     setFullScreenSize();
   }
   var user = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user : null;
@@ -621,4 +651,3 @@ function spin(){
   </script>
 </body>
 </html>
-
