@@ -13,53 +13,32 @@
       width:100%;
       height:100%;
       height:100vh;
-      height:-webkit-fill-available;
-      overflow:hidden;
-      /* Фон на html, чтобы занимал весь экран включая safe area */
       background:radial-gradient(1000px 600px at 50% 0%,#34495e 0%,var(--bg1) 50%,var(--bg2) 100%);
       background-color:var(--bg1);
-      background-attachment:fixed;
-      background-size:cover;
-      background-repeat:no-repeat;
     }
     body{
       margin:0;
       padding:0;
       color:#fff;
       font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      position:fixed;
-      top:0;
-      left:0;
-      right:0;
-      bottom:0;
-      width:100vw;
-      height:100vh;
+      width:100%;
       height:100%;
+      height:100vh;
       min-height:100vh;
-      min-height:-webkit-fill-available;
-      overflow:hidden;
-      /* Единый фон на весь экран, включая область за статус-баром и Dynamic Island */
       background:radial-gradient(1000px 600px at 50% 0%,#34495e 0%,var(--bg1) 50%,var(--bg2) 100%);
       background-color:var(--bg1);
-      background-attachment:fixed;
-      background-size:cover;
-      background-repeat:no-repeat;
-      /* Без padding - фон проходит за весь экран включая статус-бар */
     }
     .container{
       text-align:center;
-      padding:0 16px 16px;
+      padding:20px 16px;
       width:100%;
       height:100%;
+      height:100vh;
+      min-height:100vh;
       display:flex;
       flex-direction:column;
       justify-content:center;
       align-items:center;
-      /* Контент центрируется в доступной области под header'ом */
-      padding-top:0;
     }
     h1{margin:0 0 18px;font-weight:800;letter-spacing:.2px}
 
@@ -97,36 +76,16 @@
       color:#fff;font-weight:700;cursor:pointer;box-shadow:0 6px 16px rgba(54,179,126,.35)}
     .meme{display:block;width:100%;max-height:360px;object-fit:contain;margin-top:14px;border-radius:10px}
 
-    /* Overlay для фона на весь экран */
-    #fullscreen-bg{
-      position:fixed !important;
-      top:0 !important;
-      left:0 !important;
-      right:0 !important;
-      bottom:0 !important;
-      width:100vw !important;
-      height:100vh !important;
-      min-height:100vh !important;
-      min-height:-webkit-fill-available !important;
-      z-index:-999 !important;
-      background:radial-gradient(1000px 600px at 50% 0%,#34495e 0%,var(--bg1) 50%,var(--bg2) 100%) !important;
-      background-color:var(--bg1) !important;
-      background-attachment:fixed !important;
-      background-size:cover !important;
-      background-repeat:no-repeat !important;
-      margin:0 !important;
-      padding:0 !important;
-      pointer-events:none !important;
-      overflow:hidden !important;
-    }
 
-    /* на десктопах — компактный размер */
+    /* на десктопах — компактный размер, но занимает всю высоту */
     @media (min-width:1024px){
       .container{
-        width:auto;
-        height:auto;
-        max-width:440px;
-        padding:24px;
+        width:100%;
+        height:100%;
+        height:100vh;
+        min-height:100vh;
+        max-width:none;
+        padding:20px;
       }
       .wheel-wrap{
         width:440px;
@@ -141,7 +100,6 @@
   </style>
 </head>
 <body>
-  <div id="fullscreen-bg"></div>
   <div class="container">
     <h1>Испытай свою удачу!</h1>
     <div class="wheel-wrap">
@@ -164,20 +122,6 @@
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
-    /* ===== ВАЖНО: НАСТРОЙКА ДЛЯ ПОЛНОЭКРАННОГО РЕЖИМА ===== */
-    /* 
-     * Direct Link создан: t.me/ITL_otzivi_bot/itlotzivi
-     * 
-     * Для правильной работы полноэкранного режима Mini Apps 2.0:
-     * 1. В боте используйте кнопку типа web_app с Direct Link:
-     *    KeyboardButton(text="Открыть колесо", web_app=WebAppInfo(url="https://t.me/ITL_otzivi_bot/itlotzivi"))
-     *    ИЛИ используйте прямой URL вашего сайта:
-     *    KeyboardButton(text="Открыть колесо", web_app=WebAppInfo(url="https://ваш-домен.com"))
-     * 2. Не используйте обычные URL-кнопки - только web_app кнопки
-     * 3. Убедитесь, что используете последнюю версию Telegram
-     * 4. При открытии через Direct Link приложение должно открыться в полноэкранном режиме
-     */
-    
     /* ===== НАСТРОЙКА ===== */
     // прод-вебхук n8n — поменяй на свой при необходимости
     var WEBHOOK_URL = 'https://solonflowai.ru/webhook/roulette_prize';
@@ -194,198 +138,16 @@
     /* ===== Telegram SDK ===== */
     var tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
     
-    // Отладка: проверяем наличие Telegram WebApp
+    // Инициализация Telegram WebApp
     if (tg) {
-      console.log('✅ Telegram WebApp обнаружен');
-      console.log('expand доступен:', typeof tg.expand === 'function');
-    } else {
-      console.warn('⚠️ Telegram WebApp не обнаружен - возможно, открыто не в Telegram');
-    }
-    
-    // Функция для установки полного размера экрана
-    function setFullScreenSize() {
-      var bgOverlay = document.getElementById('fullscreen-bg');
-      
-      // Используем window.screen для получения реального размера экрана
-      var screenHeight = window.screen.height;
-      var screenWidth = window.screen.width;
-      
-      // Также пробуем получить размеры из Telegram API
-      var tgHeight = null;
-      var tgWidth = null;
-      if (tg) {
-        tgHeight = tg.viewportStableHeight || tg.viewportHeight;
-        tgWidth = tg.viewportWidth;
-      }
-      
-      // Используем максимальное значение для гарантированного покрытия
-      var height = Math.max(
-        screenHeight,
-        tgHeight || 0,
-        window.innerHeight || 0,
-        document.documentElement.clientHeight || 0
-      );
-      
-      var width = Math.max(
-        screenWidth,
-        tgWidth || 0,
-        window.innerWidth || 0,
-        document.documentElement.clientWidth || 0
-      );
-      
-      // Устанавливаем размеры для html и body
-      document.documentElement.style.height = height + 'px';
-      document.documentElement.style.minHeight = height + 'px';
-      document.body.style.height = height + 'px';
-      document.body.style.minHeight = height + 'px';
-      
-      // Устанавливаем размеры для overlay фона напрямую через style
-      if (bgOverlay) {
-        bgOverlay.style.setProperty('height', height + 'px', 'important');
-        bgOverlay.style.setProperty('width', width + 'px', 'important');
-        bgOverlay.style.setProperty('min-height', height + 'px', 'important');
-        bgOverlay.style.setProperty('top', '0', 'important');
-        bgOverlay.style.setProperty('left', '0', 'important');
-        bgOverlay.style.setProperty('right', '0', 'important');
-        bgOverlay.style.setProperty('bottom', '0', 'important');
-      }
-    }
-    
-  try{ 
-    if (tg) {
-      // КРИТИЧЕСКИ ВАЖНО для полноэкранного режима:
-      // 1. expand() вызывается ДО ready()
-      // 2. Цвета устанавливаются ДО expand()
-      // 3. ready() вызывается ПОСЛЕ expand()
-      
-      // Устанавливаем цвета фона ПЕРВЫМ делом
       try {
+        tg.ready && tg.ready();
         tg.setHeaderColor && tg.setHeaderColor('#2c3e50');
         tg.setBackgroundColor && tg.setBackgroundColor('#2c3e50');
       } catch(e) {
-        console.warn('Ошибка установки цветов:', e);
+        console.warn('Telegram WebApp error:', e);
       }
-      
-      // КРИТИЧНО: expand() ДО ready() - это ключ к полноэкранному режиму
-      if (tg.expand) {
-        try { 
-          console.log('🚀 Вызываю tg.expand() ДО ready()');
-          tg.expand(); 
-          console.log('✅ tg.expand() вызван успешно');
-        } catch(e) { 
-          console.error('❌ Ошибка при вызове expand:', e); 
-        }
-      }
-      
-      // Теперь вызываем ready()
-      try {
-        tg.ready && tg.ready();
-      } catch(e) {
-        console.warn('Ошибка ready():', e);
-      }
-      
-      // Включаем подтверждение закрытия (отключает swipe to dismiss)
-      try {
-        tg.enableClosingConfirmation && tg.enableClosingConfirmation();
-      } catch(e) {
-        console.warn('Ошибка enableClosingConfirmation:', e);
-      }
-      
-      // Дополнительные вызовы expand() после ready() для гарантии
-      if (tg.expand) {
-        setTimeout(function(){ 
-          try { 
-            tg.expand(); 
-            console.log('✅ tg.expand() вызван после ready (50ms)');
-          } catch(e) {} 
-        }, 50);
-        setTimeout(function(){ 
-          try { 
-            tg.expand(); 
-            console.log('✅ tg.expand() вызван после ready (100ms)');
-          } catch(e) {} 
-        }, 100);
-        setTimeout(function(){ 
-          try { 
-            tg.expand(); 
-          } catch(e) {} 
-        }, 200);
-        setTimeout(function(){ 
-          try { 
-            tg.expand(); 
-          } catch(e) {} 
-        }, 500);
-      }
-      
-      // Устанавливаем размеры для полного покрытия экрана
-      setFullScreenSize();
-      setTimeout(setFullScreenSize, 50);
-      setTimeout(setFullScreenSize, 100);
-      setTimeout(setFullScreenSize, 200);
-      setTimeout(setFullScreenSize, 300);
-      setTimeout(setFullScreenSize, 500);
-      
-      // Обработка изменения viewport (важно для динамического изменения размера)
-      if (tg.onEvent) {
-        tg.onEvent('viewportChanged', function(){
-          console.log('🔄 viewportChanged событие');
-          setTimeout(function(){
-            if (tg.expand) {
-              try {
-                tg.expand();
-                console.log('✅ expand() после viewportChanged');
-              } catch(e) {}
-            }
-            setFullScreenSize();
-          }, 50);
-        });
-      }
-      
-      // Обработка после полной загрузки страницы
-      window.addEventListener('load', function(){
-        setTimeout(function(){
-          if (tg.expand) {
-            try {
-              tg.expand();
-              console.log('✅ expand() после window.load');
-            } catch(e) {}
-          }
-          setFullScreenSize();
-        }, 100);
-        setTimeout(function(){
-          if (tg.expand) {
-            try {
-              tg.expand();
-            } catch(e) {}
-          }
-          setFullScreenSize();
-        }, 300);
-      });
-      
-      // Обработка события ready (если доступно)
-      if (tg.onEvent) {
-        tg.onEvent('ready', function(){
-          console.log('✅ Telegram WebApp ready');
-          setTimeout(function(){
-            if (tg.expand) {
-              try {
-                tg.expand();
-                console.log('✅ expand() после ready событие');
-              } catch(e) {}
-            }
-            setFullScreenSize();
-          }, 50);
-        });
-      }
-    } else {
-      // Если не в Telegram, все равно устанавливаем размеры
-      setFullScreenSize();
     }
-  }catch(e){
-    // Fallback если что-то пошло не так
-    console.error('Telegram WebApp error:', e);
-    setFullScreenSize();
-  }
   var user = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user : null;
   var TG_ID = user ? user.id : null;
   var USERNAME = user ? user.username : null;
@@ -764,32 +526,14 @@ function spin(){
         }
       }catch(_){}
 
-      // Устанавливаем полный размер экрана при инициализации
-      setFullScreenSize();
-      setTimeout(setFullScreenSize, 50);
-      setTimeout(setFullScreenSize, 100);
-      setTimeout(setFullScreenSize, 200);
-      
       resizeCanvas();
       window.addEventListener('resize', function(){
-        setFullScreenSize();
         resizeCanvas();
       });
       
-      // Дополнительные вызовы для гарантии
       window.addEventListener('orientationchange', function(){
-        setTimeout(setFullScreenSize, 100);
-        setTimeout(setFullScreenSize, 300);
+        setTimeout(resizeCanvas, 100);
       });
-      // Обработка изменения viewport в Telegram WebApp (для полноэкранного режима)
-      if (tg && tg.onEvent) {
-        tg.onEvent('viewportChanged', function(){
-          setTimeout(function(){
-            setFullScreenSize();
-            resizeCanvas();
-          }, 100);
-        });
-      }
       spinBtn.addEventListener('click', spin);
       closeModal.addEventListener('click', function(){
         modal.classList.add('hidden');
